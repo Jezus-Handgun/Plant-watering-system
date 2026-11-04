@@ -75,7 +75,8 @@ Ruff + testy z atrapami       ── ssh raspi@raspi.local "..." ──▶  test
 - Repozytorium: **`plant-watering-system`** (GitHub, konto `Jezus-Handgun`).
 - Logikę testuj lokalnie na atrapach (`HARDWARE_MODE=simulation`), bez sprzętu.
 - Testy sprzętowe uruchamiaj na Pi jednym poleceniem przez SSH, np.:
-  `ssh raspi@raspi.local "cd ~/plant-watering-system && git pull && uv run python scripts/test_sondy.py"`
+  `ssh raspi@raspi.local "cd ~/plant-watering-system && git pull && uv run python -m scripts.test_sondy"`
+  (skrypty uruchamiać jako moduły `-m`, żeby był widoczny pakiet `hardware`)
 - Logowanie SSH kluczem `id_ed25519` (bez hasła). Jeśli SSH pyta o hasło — powiedz właścicielowi, nie próbuj obchodzić.
 - Przed każdym poleceniem, które może włączyć pompkę, obowiązuje zasada bezpieczeństwa nr 1 (pytanie o wodę).
 
@@ -195,8 +196,8 @@ Pompka przez przecięty **przedłużacz USB-A męski–żeński** (kabel pompki 
 - [x] **Etap 1 — test sondy:** GPIO17, SUCHO/MOKRO — **działa (2026-11-04)**.
 - [x] **Etap 1b — test przekaźnika:** GPIO27 przez diodę LED, `active_high=False` — **działa (2026-11-04)**.
 - [x] **Etap 1c — test restartu:** `sudo reboot` — zielona dioda przekaźnika i czerwona LED nie mogą się zapalić podczas startu. — **działa (2026-11-04)**.
-- [ ] **Etap 2 — pompka:** przedłużacz USB przez przekaźnik (COM/NO), funkcja `podlej(sekundy)` z `try/finally` i limitem czasu. Zmierzyć, ile ml wody daje 1 s pracy pompki (do `docs/testy.md`).
-- [ ] **Etap 3 — moduły sprzętowe w repozytorium:** `hardware/sensor.py`, `hardware/pump.py`, `hardware/fake.py`, skrypty w `scripts/`, testy na atrapach.
+- [ ] **Etap 2 — pompka:** przedłużacz USB przez przekaźnik (COM/NO), funkcja `podlej(sekundy)` z `try/finally` i limitem czasu. Zmierzyć, ile ml wody daje 1 s pracy pompki (do `docs/testy.md`). Kod gotowy (`Pompka.podlej()`, `scripts/kalibracja_pompki.py`) — czeka na przedłużacz USB.
+- [x] **Etap 3 — moduły sprzętowe w repozytorium:** `hardware/sensor.py`, `hardware/pump.py`, `hardware/fake.py`, skrypty w `scripts/`, testy na atrapach — **zrobione (2026-11-04)**.
 - [ ] **Etap 4 — automat:** pętla: odczyt sondy (decyzja większościowa) → jeśli sucho i minęła przerwa → podlej N sekund. Logowanie do pliku.
 - [ ] **Etap 5 — backend:** Flask + SQLite (fabryka `create_app()`, blueprinty). Modele: pomiary, cykle podlewania, ustawienia. Endpointy wzorowane na starym projekcie: `GET /api/status`, `GET /api/history/...`, `POST /api/water` (ręczne podlanie z limitem czasu), `POST /api/stop`, `GET/PUT /api/settings`.
 - [ ] **Etap 6 — frontend:** panel webowy serwowany przez Flask (stan rośliny, przycisk „Podlej”, wykres historii, ustawienia), wyglądem inspirowany panelem ze starego repozytorium.
