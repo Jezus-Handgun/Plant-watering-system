@@ -34,7 +34,7 @@ Materiał do rozdziału z badaniami. Każdy wpis: data, co testowano, jak, wynik
 ## 2026-11-04 — Etap 3: moduły `hardware/` na Pi
 
 - **Testy jednostkowe na atrapach** (`uv run pytest`): 12/12 zaliczonych na komputerze (Windows) i na Pi.
-- **Sonda przez nowy moduł** (`uv run python -m scripts.test_sondy`, 5 s): odczyt surowy i decyzja większościowa zgodne — SUCHO (sonda poza glebą).
+- **Sonda przez nowy moduł** (`uv run python -m scripts.test_sondy`, 5 s): odczyt surowy i decyzja większościowa zgodne — SUCHO przez cały czas trwania testu.
 
 ## Do zrobienia
 
