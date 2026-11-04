@@ -194,7 +194,7 @@ Pompka przez przecięty **przedłużacz USB-A męski–żeński** (kabel pompki 
 - [x] **Etap 0 — środowisko:** **zrobione (2026-11-04)** — na Pi dodatkowo `sudo apt-get install swig liblgpio-dev` (patrz decyzja 9). na komputerze (Windows): Git, VS Code, Claude Code, uv. Repozytorium `plant-watering-system` na GitHubie, sklonowane na komputer i na Pi. Na Pi: `uv`. `uv init`, `uv add gpiozero lgpio`, `uv add --dev ruff pytest`, konfiguracja Ruff w `pyproject.toml`. Utworzyć `docs/decyzje.md` i `docs/testy.md` i przenieść do nich decyzje i wyniki z tego pliku.
 - [x] **Etap 1 — test sondy:** GPIO17, SUCHO/MOKRO — **działa (2026-11-04)**.
 - [x] **Etap 1b — test przekaźnika:** GPIO27 przez diodę LED, `active_high=False` — **działa (2026-11-04)**.
-- [ ] **Etap 1c — test restartu:** `sudo reboot` — zielona dioda przekaźnika i czerwona LED nie mogą się zapalić podczas startu.
+- [x] **Etap 1c — test restartu:** `sudo reboot` — zielona dioda przekaźnika i czerwona LED nie mogą się zapalić podczas startu. — **działa (2026-11-04)**.
 - [ ] **Etap 2 — pompka:** przedłużacz USB przez przekaźnik (COM/NO), funkcja `podlej(sekundy)` z `try/finally` i limitem czasu. Zmierzyć, ile ml wody daje 1 s pracy pompki (do `docs/testy.md`).
 - [ ] **Etap 3 — moduły sprzętowe w repozytorium:** `hardware/sensor.py`, `hardware/pump.py`, `hardware/fake.py`, skrypty w `scripts/`, testy na atrapach.
 - [ ] **Etap 4 — automat:** pętla: odczyt sondy (decyzja większościowa) → jeśli sucho i minęła przerwa → podlej N sekund. Logowanie do pliku.
