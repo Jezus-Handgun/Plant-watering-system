@@ -19,6 +19,7 @@ Brak przetwornika ADC; próg ustawiany potencjometrem na module HW-103. Konsekwe
 ### 4. Sterowanie pompką: przekaźnik zamiast `uhubctl`
 
 Rozważono odcinanie zasilania USB przez `uhubctl`. Odrzucono, bo:
+
 - na Pi 4 wyłącza wszystkie porty USB naraz,
 - pompka pracowałaby przez kilkanaście sekund przy każdym starcie Pi, zanim usługa systemd zdąży wyłączyć porty.
 
@@ -54,6 +55,8 @@ Raspberry Pi OS (Debian 13 „trixie”) ma systemowy Python 3.13.5. Ta sama wer
 ### 9. `lgpio` tylko na Linuksie
 
 `lgpio` (backend gpiozero dla Pi 4/5) to biblioteka C działająca wyłącznie na Linuksie. Dodano ją z markerem `sys_platform == 'linux'`: na Pi jest instalowana, na Windowsie pomijana. Na komputerze testy używają atrap (`HARDWARE_MODE=simulation`, `gpiozero` z `MockFactory`), więc `lgpio` nie jest tam potrzebne.
+
+Na PyPI nie ma gotowej paczki (wheel) `lgpio` dla Pythona 3.13 na `aarch64`, więc uv kompiluje ją ze źródeł. Wymaga to na Pi jednorazowo: `sudo apt-get install swig liblgpio-dev`. Alternatywa — systemowy `python3-lgpio` widoczny w `.venv` (`--system-site-packages`) — odrzucona, bo wersja biblioteki zależałaby od systemu, a nie od `uv.lock`.
 
 ### 10. Ruff jako linter i formatter
 
