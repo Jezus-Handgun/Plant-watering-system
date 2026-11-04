@@ -17,7 +17,10 @@ def main() -> None:
     sonda = Sonda()
     try:
         while True:
-            print(f"surowy: {opis(sonda.odczyt_surowy())} | większość: {opis(sonda.jest_sucho())}")
+            # flush: przez SSH bez -t wydruk jest buforowany; po zerwaniu połączenia
+            # zapis od razu rzuca BrokenPipeError, więc skrypt nie zostaje z zajętym pinem.
+            surowy, wiekszosc = opis(sonda.odczyt_surowy()), opis(sonda.jest_sucho())
+            print(f"surowy: {surowy} | większość: {wiekszosc}", flush=True)
             time.sleep(1)
     except KeyboardInterrupt:
         pass
