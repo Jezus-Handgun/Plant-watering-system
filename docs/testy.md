@@ -24,7 +24,13 @@ Materiał do rozdziału z badaniami. Każdy wpis: data, co testowano, jak, wynik
   - `on()` → przekaźnik klika, świeci zielona dioda modułu i czerwona LED,
   - `off()` → wszystko gaśnie.
 
+## 2026-11-04 — Etap 1c: zachowanie przekaźnika podczas restartu Pi
+
+- **Cel:** sprawdzić, czy przekaźnik nie włącza się samoczynnie podczas startu systemu (zanim program przejmie GPIO27). Gdyby się włączał, pompka ruszałaby przy każdym starcie Pi.
+- **Metoda:** `sudo reboot`, obserwacja zielonej diody modułu HW-307 i czerwonej LED w torze IN przez cały czas startu.
+- **Wynik:** poprawny — żadna z diod się nie zapaliła, przekaźnik nie kliknął.
+- **Wyjaśnienie:** podczas startu GPIO27 jest wejściem (stan wysokiej impedancji), więc przez LED nie płynie prąd i przekaźnik pozostaje wyłączony. Potwierdza to założenie z decyzji 4 i 5 (`docs/decyzje.md`).
+
 ## Do zrobienia
 
-- Etap 1c: test restartu (`sudo reboot`) — diody przekaźnika nie mogą się zapalić podczas startu.
 - Etap 2: ile ml wody daje 1 s pracy pompki.
