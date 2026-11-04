@@ -75,10 +75,12 @@ Ruff + testy z atrapami       ── ssh raspi@raspi.local "..." ──▶  test
 - Repozytorium: **`plant-watering-system`** (GitHub, konto `Jezus-Handgun`).
 - Logikę testuj lokalnie na atrapach (`HARDWARE_MODE=simulation`), bez sprzętu.
 - Testy sprzętowe uruchamiaj na Pi jednym poleceniem przez SSH, np.:
-  `ssh raspi@raspi.local "cd ~/plant-watering-system && git pull && ~/.local/bin/uv run python -m scripts.test_sondy"`
+  `ssh -t raspi@raspi.local "cd ~/plant-watering-system && git pull && ~/.local/bin/uv run python -m scripts.test_sondy"`
   (skrypty uruchamiać jako moduły `-m`, żeby był widoczny pakiet `hardware`;
   w poleceniach `ssh ... "..."` pełna ścieżka `~/.local/bin/uv` — nieinteraktywna powłoka
-  nie wczytuje końca `~/.bashrc`, gdzie instalator uv dopisał `PATH`)
+  nie wczytuje końca `~/.bashrc`, gdzie instalator uv dopisał `PATH`;
+  `-t` tworzy terminal: Ctrl+C trafia do skryptu na Pi, działa `input()`. Bez `-t` Ctrl+C
+  zamyka tylko klienta SSH, a skrypt na Pi działa dalej i trzyma GPIO — „GPIO busy”)
 - Logowanie SSH kluczem `id_ed25519` (bez hasła). Jeśli SSH pyta o hasło — powiedz właścicielowi, nie próbuj obchodzić.
 - Przed każdym poleceniem, które może włączyć pompkę, obowiązuje zasada bezpieczeństwa nr 1 (pytanie o wodę).
 
