@@ -1,0 +1,25 @@
+[project]
+name = "plant-watering-system"
+version = "0.1.0"
+requires-python = ">=3.13"
+dependencies = [
+    "gpiozero>=2.0.1.post3",
+    "lgpio>=0.2.2.0 ; sys_platform == 'linux'",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.2.0",
+    "ruff>=0.17.3",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+
+[tool.ruff.lint]
+# E/W: styl PEP 8, F: błędy (pyflakes), I: kolejność importów, B: typowe pułapki, UP: nowsza składnia
+select = ["E", "W", "F", "I", "B", "UP"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
