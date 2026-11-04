@@ -31,6 +31,11 @@ Materiał do rozdziału z badaniami. Każdy wpis: data, co testowano, jak, wynik
 - **Wynik:** poprawny — żadna z diod się nie zapaliła, przekaźnik nie kliknął.
 - **Wyjaśnienie:** podczas startu GPIO27 jest wejściem (stan wysokiej impedancji), więc przez LED nie płynie prąd i przekaźnik pozostaje wyłączony. Potwierdza to założenie z decyzji 4 i 5 (`docs/decyzje.md`).
 
+## 2026-11-04 — Etap 3: moduły `hardware/` na Pi
+
+- **Testy jednostkowe na atrapach** (`uv run pytest`): 12/12 zaliczonych na komputerze (Windows) i na Pi.
+- **Sonda przez nowy moduł** (`uv run python -m scripts.test_sondy`, 5 s): odczyt surowy i decyzja większościowa zgodne — SUCHO (sonda poza glebą).
+
 ## Do zrobienia
 
 - Etap 2: ile ml wody daje 1 s pracy pompki.
