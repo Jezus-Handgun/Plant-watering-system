@@ -87,3 +87,41 @@ Polecenia na Pi są uruchamiane przez SSH. Zerwanie połączenia wysyła SIGHUP,
 ### 15. Skrypty uruchamiane jako moduły (`python -m scripts.nazwa`)
 
 Przy `python scripts/nazwa.py` Python widzi tylko katalog `scripts/` i nie znajduje pakietu `hardware`. Uruchamianie z `-m` z katalogu projektu rozwiązuje to bez instalowania projektu jako pakietu i bez modyfikowania `sys.path` w kodzie.
+
+## Etap 4 — automat podlewania
+
+### 16. Automat jako klasa z metodą `krok()` i osobna pętla
+
+`app/controller.py`: `Automat.krok()` podejmuje **jedną** decyzję (`MOKRO`, `PRZERWA`, `LIMIT`, `PODLANO`), a `petla()` tylko wywołuje ją co 60 s i loguje wynik. Sonda, pompka i zegar są wstrzykiwane (*dependency injection*).
+
+- **Alternatywa:** jedna funkcja z `while True`, odczytem GPIO i `time.sleep()` w środku.
+- **Dlaczego odrzucona:** nie da się jej przetestować bez czekania (przerwa 15 min, limit na 24 h) ani bez sprzętu. Z fałszywym zegarem testy sprawdzają całą dobę w ułamku sekundy. W etapie 5 Flask użyje tej samej klasy, np. do pokazania ostatniej decyzji w panelu.
+
+### 17. Zabezpieczenia wzięte ze starego projektu
+
+| Zabezpieczenie | Wartość domyślna | Po co |
+|---|---|---|
+| Limit czasu jednego podlania | 10 s (twardy, w `Pompka`), automat używa 3 s | pompka nie pracuje bez końca przy błędzie programu |
+| Przerwa między podlaniami (wsiąkanie) | 15 min | sonda nie zdąży wykryć wody tuż po podlaniu — bez przerwy automat podlewałby co minutę |
+| Limit dobowy | 5 podlań w oknie 24 h | ochrona przed zalaniem, gdy sonda „utknie” na SUCHO (korozja, wyjęta z gleby) |
+
+**Pominięto histerezę** ze starego projektu: tam sonda była analogowa (%), więc potrzebne były dwa progi. U nas odczyt jest binarny, próg ustawia potencjometr, a migotanie przy progu eliminuje decyzja większościowa (decyzja 12) i przerwa między podlaniami.
+
+Limit dobowy liczony jest w **oknie kroczącym 24 h**, a nie od północy — prostsza implementacja (kolejka czasów podlań) i brak zależności od daty, której Pi bez sieci może nie znać (patrz decyzja 18).
+
+### 18. Zegar monotoniczny (`time.monotonic`) zamiast czasu systemowego
+
+Raspberry Pi nie ma zegara czasu rzeczywistego (RTC). Po starcie czas systemowy może być błędny i przeskoczyć o godziny po synchronizacji NTP — przerwa liczona z `time.time()` mogłaby wtedy trwać wieki albo zniknąć. Zegar monotoniczny tylko rośnie, więc nadaje się do odmierzania odstępów. Czas „z kalendarza” jest używany wyłącznie w logach.
+
+### 19. Bezpieczne zachowanie przy awariach
+
+- **Start automatu liczy się jak podlanie** — po uruchomieniu najpierw mija przerwa. Gdyby usługa systemd wpadła w pętlę restartów, każdy restart nie kończy się podlaniem.
+- **Podlanie zapisywane przed włączeniem pompki** — nieudana próba też liczy się do przerwy i limitu, więc awaria nie powoduje ponawiania co minutę.
+- **Wyjątek w kroku jest logowany, a pętla działa dalej** — pompkę i tak wyłącza `finally` w `Pompka.podlej()`, a chwilowy błąd odczytu nie zatrzymuje automatu.
+- **SIGTERM / SIGHUP → `SystemExit`** (jak w decyzji 14) — `systemctl stop` lub zerwane SSH wyłącza pompkę natychmiast, nawet w trakcie podlewania.
+
+**Ograniczenie:** stan (czas ostatniego podlania, limit dobowy) jest tylko w pamięci — restart zeruje limit dobowy. Zapis w SQLite w etapie 5.
+
+### 20. Logowanie do pliku `automat.log`
+
+Moduł `logging` z biblioteki standardowej: każda decyzja z datą i godziną, błędy z pełnym śladem stosu. Poza diagnostyką to dane do rozdziału z badaniami (jak często gleba wysycha, ile podlań na dobę). Bez rotacji pliku: przy jednym wpisie na minutę to ok. 100 kB na dobę.
