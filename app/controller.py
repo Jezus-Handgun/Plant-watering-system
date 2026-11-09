@@ -159,6 +159,9 @@ class Sterownik:
 
     def status(self) -> dict:
         return {
+            # Zegar Pi: bez internetu (hotspot na obronie) może być cofnięty — panel liczy
+            # „X min temu” i okno wykresu względem niego, a nie zegara laptopa.
+            "czas_serwera": time.time(),
             "pomiar": self.ostatni_pomiar,
             "pompka_pracuje": self.pompka.pracuje,
             "automat_wlaczony": self.ustawienia["automat_wlaczony"],

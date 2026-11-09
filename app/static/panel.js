@@ -46,12 +46,17 @@ function nota(id, tekst, blad = false) {
 
 // --- formatowanie czasu ---
 
+// Różnica zegarów laptop − Pi (z /api/status). Pi bez internetu ma czas z chwili
+// ostatniego wyłączenia, więc „teraz” liczymy według zegara Pi.
+let przesuniecie = 0;
+const teraz = () => Date.now() / 1000 - przesuniecie;
+
 const czas = (t) => new Date(t * 1000).toLocaleString("pl-PL");
 const godzina = (t) =>
   new Date(t * 1000).toLocaleTimeString("pl-PL", { hour: "2-digit", minute: "2-digit" });
 
 function ileTemu(t) {
-  const s = Math.max(0, Date.now() / 1000 - t);
+  const s = Math.max(0, teraz() - t);
   if (s < 60) return "przed chwilą";
   if (s < 3600) return `${Math.floor(s / 60)} min temu`;
   return `${Math.floor(s / 3600)} h temu`;
@@ -64,6 +69,7 @@ let ostatniePodlanieId; // undefined ≠ null → pierwszy status zawsze wczytuj
 
 async function odswiezStatus() {
   const s = await api("/api/status");
+  przesuniecie = Date.now() / 1000 - s.czas_serwera;
 
   const gleba = $("gleba");
   if (s.pomiar) {
@@ -158,7 +164,7 @@ formUst.addEventListener("submit", async (e) => {
 
 async function pobierzDobe(rodzaj) {
   // API zwraca od najnowszych, max 500 na stronę; 24 h pomiarów co minutę = ok. 1440.
-  const od = Date.now() / 1000 - DOBA_S;
+  const od = teraz() - DOBA_S;
   const wynik = [];
   let przed = null;
   for (let i = 0; i < 5; i++) {
@@ -182,7 +188,7 @@ function rysujWykres(pomiary, podlania) {
   const svg = $("wykres");
   svg.replaceChildren();
   const X0 = 70, X1 = 890;
-  const koniec = Date.now() / 1000, poczatek = koniec - DOBA_S;
+  const koniec = teraz(), poczatek = koniec - DOBA_S;
   const x = (t) => X0 + ((t - poczatek) / DOBA_S) * (X1 - X0);
   const WIERSZE = { sucho: 20, mokro: 66 }; // y wierszy pomiarów (wysokość 36)
 

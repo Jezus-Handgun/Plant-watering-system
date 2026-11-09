@@ -1,6 +1,7 @@
 """Testy API przez app.test_client() — tryb symulacji, baza w katalogu tymczasowym."""
 
 import threading
+import time
 
 import pytest
 
@@ -48,6 +49,7 @@ def test_status(klient, sterownik):
     dane = odp.get_json()
     assert dane["pomiar"]["sucho"] is True
     assert dane["pompka_pracuje"] is False
+    assert abs(dane["czas_serwera"] - time.time()) < 5
     assert dane["ostatnia_decyzja"] == "przerwa"
 
 

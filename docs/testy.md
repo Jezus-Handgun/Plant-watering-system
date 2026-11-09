@@ -67,7 +67,27 @@ Materiał do rozdziału z badaniami. Każdy wpis: data, co testowano, jak, wynik
 - **Pi, tryb `real`:** panel otwarty z komputera pod `http://raspi.local:5000` — plakietka „Połączono z Pi”, stan SUCHO z prawdziwej sondy, decyzja „trwa przerwa na wsiąknięcie”, na wykresie pomiary zapisane w SQLite na Pi; aplikacja zatrzymana sygnałem SIGTERM.
 - **Nie sprawdzono w przeglądarce:** kliknięć „Podlej”/„Zatrzymaj”/„Zapisz” (te same endpointy są pokryte testami API).
 
+## 2026-11-09 — Obserwacja: przeskok zegara Pi po starcie
+
+- Pi uruchomione 2026-11-09 ok. 18:10 (po kilku dniach wyłączenia).
+- Do 18:11:23 zegar systemowy pokazywał **2026-11-04 23:14** (czas zapisany przy poprzednim wyłączeniu — Pi nie ma zegara RTC). Usługi startujące w tym czasie mają w dzienniku datę 4 listopada.
+- O 18:11:23 `systemd-timesyncd` zsynchronizował czas z serwerem NTP — **przeskok o ok. 4 dni i 19 h** do przodu.
+- Wniosek: odmierzanie przerw zegarem systemowym byłoby błędne; potwierdza decyzje 18, 26 i 39.
+
+## 2026-11-09 — Etap 7: serwer, usługa, raport
+
+- **Testy jednostkowe:** 53/53 (nowe: raport dzienny, `czas_serwera` w statusie).
+- **Pi, `run.py` z serwerem `waitress`:** panel `200` z komputera, status z prawdziwą sondą; `SIGTERM` → wpis „Koniec pracy aplikacji” w mniej niż 1 s, proces zakończony.
+- **Raport** (`python -m scripts.raport`) na bazie z Pi — dotychczasowe krótkie uruchomienia testowe:
+
+| Dzień | Pomiary | Sucho [%] | Przerwy w pracy | Podlania automatu | Podlania ręczne | Praca pompy [s] | Błędy |
+|---|---|---|---|---|---|---|---|
+| 2026-11-09 | 5 | 100 | 1 | 0 | 0 | 0 | 0 |
+
 ## Do zrobienia
 
 - Etap 2: ile ml wody daje 1 s pracy pompki.
 - Pełna ścieżka na sprzęcie: sucho → automat podlewa → pompka rusza (po etapie 2).
+- Usługa systemd: test restartu (`sudo reboot`) po instalacji.
+- Test długoterminowy (min. 7 dni, po etapie 2) — raport `scripts.raport`.
+- Próba generalna na laptopie z obrony (wybrana sieć).

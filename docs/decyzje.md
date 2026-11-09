@@ -238,3 +238,43 @@ Panel co 2 s pobiera `/api/status` (pompka pracuje / stoi), a co 60 s historię 
 ### 34. Bezpieczeństwo panelu: dane z serwera tylko przez `textContent`
 
 Wszystkie dane z API (np. komunikat błędu zapisany w bazie) trafiają do strony przez `textContent` / `createElement`, nigdy przez `innerHTML`. Tekst z bazy nie może więc wstrzyknąć kodu HTML/JS do panelu (atak XSS).
+
+## Etap 7 — wdrożenie
+
+### 35. Serwer WWW: `waitress` (rozstrzygnięcie decyzji 29)
+
+- **Alternatywy:** wbudowany serwer Flaska (Werkzeug), gunicorn.
+- **Werkzeug** sam ostrzega, że nie jest przeznaczony do pracy produkcyjnej, i loguje każde żądanie (panel pyta co 2 s → zaśmiecony dziennik).
+- **gunicorn** typowo uruchamia kilka procesów (workerów) — sprzeczne z decyzją 23 (jeden właściciel GPIO).
+- **waitress** — serwer produkcyjny w czystym Pythonie (bez kompilacji na Pi), **jeden proces z pulą wątków** (4), działa też na Windowsie (symulacja). Na `SIGTERM` kończy pracę normalnie (przechwytuje `SystemExit`), więc `finally` w `run.py` zawsze wyłącza pompkę — sprawdzone na Pi.
+
+### 36. Usługa systemd
+
+[`systemd/podlewanie.service`](../systemd/podlewanie.service):
+
+- `User=raspi` — bez uprawnień roota; użytkownik należy do grupy `gpio`, więc ma dostęp do pinów.
+- `ExecStart` wskazuje Pythona z `.venv` projektu zamiast `uv run` — start nie potrzebuje sieci ani synchronizacji zależności (na obronie Pi może nie mieć internetu); po zmianie zależności ręcznie `uv sync`.
+- `After=network.target` bez czekania na sieć — automat ma działać także bez Wi-Fi.
+- `Restart=on-failure`, `RestartSec=10` — samoczynny powrót po awarii; pętla restartów nie oznacza wielokrotnego podlewania, bo automat po starcie najpierw odczekuje przerwę (decyzja 19), a limit dobowy jest w bazie (decyzja 26).
+- `KillSignal=SIGTERM`, `TimeoutStopSec=30` — czas na wyłączenie pompki i zamknięcie GPIO.
+
+### 37. Wyłączenie starej usługi `usb-off.service` (zalecenie)
+
+Na Pi znaleziono włączoną usługę z wcześniejszych prób, która przy starcie wyłącza zasilanie wszystkich portów USB przez `uhubctl` — rozwiązanie odrzucone w decyzji 4. Pompka będzie zasilana z pinu 5 V złącza GPIO przez przekaźnik (decyzja 21), więc usługa nie pełni już żadnej roli, a odcina inne urządzenia USB. Zalecane `sudo systemctl disable usb-off.service` (instrukcja: `docs/obrona.md`). Konsekwencja: pompki nie wolno wpinać bezpośrednio do portu USB Pi.
+
+### 38. Sieć na obronie: hotspot z telefonu, zapasowo hotspot na Pi
+
+| Wariant | Ocena |
+|---|---|
+| **Hotspot z telefonu (główny)** | profil już zapisany na Pi; Pi ma internet, więc poprawny czas; wymaga sprawnego telefonu |
+| **Hotspot na Pi (zapasowy)** | NetworkManager, `ipv4.method shared`, niski priorytet autopołączenia — włącza się sam, gdy żadna znana sieć nie jest w zasięgu; Pi bez internetu |
+| Kabel Ethernet | wymaga portu w laptopie i osobnej konfiguracji adresów — tylko awaryjnie |
+| Sieć uczelni | zwykle izoluje urządzenia i wymaga logowania — odrzucone |
+
+### 39. Panel liczy czas według zegara Pi
+
+Zaobserwowane 2026-11-09 (`docs/testy.md`): Pi bez RTC startuje z czasem z chwili ostatniego wyłączenia, a poprawia go dopiero synchronizacja NTP (przez internet). Na hotspocie Pi internetu nie ma, więc zegar Pi i laptopa mogą się różnić o godziny — panel pokazywałby świeży pomiar jako „5 h temu”, a wykres 24 h byłby pusty. `/api/status` zwraca `czas_serwera`, panel wylicza przesunięcie zegarów i liczy „X min temu” oraz okno wykresu według zegara Pi. Godziny w panelu pozostają godzinami Pi (mogą być przesunięte), ale zależności czasowe są poprawne.
+
+### 40. Raport z testów długoterminowych (`scripts/raport.py`)
+
+Podsumowanie każdego dnia jednym zapytaniem SQL na tabelę (`GROUP BY` po dacie lokalnej, funkcja okna `LAG` do wykrywania przerw w pracy > 5 min). Baza otwierana tylko do odczytu (`mode=ro`), więc raport nie koliduje z działającą usługą (tryb WAL). Wynik jako tabela Markdown — bezpośrednio do `docs/testy.md`.

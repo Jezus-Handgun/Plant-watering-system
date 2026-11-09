@@ -81,6 +81,10 @@ Ruff + testy z atrapami       ── ssh raspi@raspi.local "..." ──▶  test
   nie wczytuje końca `~/.bashrc`, gdzie instalator uv dopisał `PATH`;
   `-t` tworzy terminal: Ctrl+C trafia do skryptu na Pi, działa `input()`. Bez `-t` Ctrl+C
   zamyka tylko klienta SSH, a skrypt na Pi działa dalej i trzyma GPIO — „GPIO busy”)
+- **Gdy usługa `podlewanie` jest zainstalowana, to ona trzyma GPIO.** Przed skryptami testowymi
+  `sudo systemctl stop podlewanie`, po nich `sudo systemctl start podlewanie` (szczegóły: `docs/obrona.md`).
+- Na Pi jest włączona stara usługa `usb-off.service` (wyłącza zasilanie wszystkich portów USB przy starcie,
+  pozostałość po odrzuconym `uhubctl`) — zalecane wyłączenie, decyzja 37.
 - Logowanie SSH kluczem `id_ed25519` (bez hasła). Jeśli SSH pyta o hasło — powiedz właścicielowi, nie próbuj obchodzić.
 - Przed każdym poleceniem, które może włączyć pompkę, obowiązuje zasada bezpieczeństwa nr 1 (pytanie o wodę).
 
@@ -212,8 +216,22 @@ Pompka wpięta wtykiem USB-A (kabel nietknięty) do **modułu z gniazdem USB-A**
 - [x] **Etap 4 — automat:** pętla: odczyt sondy (decyzja większościowa) → jeśli sucho i minęła przerwa → podlej N sekund. Logowanie do pliku. — **zrobione (2026-11-09)**: `app/controller.py` (od etapu 5 automat działa jako wątek aplikacji, patrz decyzja 22).
 - [x] **Etap 5 — backend:** Flask + SQLite (fabryka `create_app()`, blueprinty). Modele: pomiary, cykle podlewania, ustawienia. Endpointy wzorowane na starym projekcie: `GET /api/status`, `GET /api/history/...`, `POST /api/water` (ręczne podlanie z limitem czasu), `POST /api/stop`, `GET/PUT /api/settings`. **Zrobione (2026-11-09):** `app/db.py`, `app/api.py`, `app/controller.py` (`Automat` + `Sterownik`), `run.py`; ręczne podlewanie omija przerwę i limit automatu (decyzja 24), panel bez logowania (decyzja 28). Uruchomienie: `uv run python run.py` (Windows: `$env:HARDWARE_MODE="simulation"; uv run python run.py`); na Pi przez SSH: `~/.local/bin/uv run python run.py`.
 - [x] **Etap 6 — frontend:** panel webowy serwowany przez Flask (stan rośliny, przycisk „Podlej”, wykres historii, ustawienia), wyglądem inspirowany panelem ze starego repozytorium. **Zrobione (2026-11-09):** `app/templates/index.html`, `app/static/panel.css`, `app/static/panel.js` — bez zasobów z internetu (decyzja 30), czysty JS (decyzja 31).
-- [ ] **Etap 7 — wdrożenie i badania:** aplikacja jako usługa systemd uruchamiana przy starcie, sieć na obronę (hotspot na Pi lub Ethernet), testy długoterminowe, opis wyników w `docs/testy.md`.
+- [~] **Etap 7 — wdrożenie i badania:** aplikacja jako usługa systemd uruchamiana przy starcie, sieć na obronę (hotspot na Pi lub Ethernet), testy długoterminowe, opis wyników w `docs/testy.md`. **Kod gotowy (2026-11-09):** serwer `waitress` (decyzja 35), `systemd/podlewanie.service`, `scripts/raport.py`, instrukcja `docs/obrona.md`. **Czeka na właściciela** (polecenia z `sudo`): instalacja usługi + test `sudo reboot`, decyzja o wyłączeniu `usb-off.service` (decyzja 37), wybór i próba sieci na obronę (decyzja 38).
 - [ ] **Później (opcjonalnie):** ADS1115 dla odczytu wilgotności w %, czujnik poziomu wody HW-038 (blokada pompki przy pustym zbiorniku), sonda pojemnościowa zamiast HW-080 (HW-080 koroduje).
+
+## Co zostało do zrobienia (stan na 2026-11-09)
+
+Cały kod systemu (etapy 0–7) jest gotowy i przetestowany. Zostały kroki zależne od sprzętu, czasu i właściciela:
+
+1. **Etap 2 — czekamy na jedną część elektroniczną: moduł z gniazdem USB-A** (Botland MOD-16154, sekcja „Pompka”).
+   Gdy dotrze: podłączenie przy wyłączonym Pi → kontrola, że pompka nie rusza sama → kalibracja na wadze
+   (3 × 5 s przy zatrzymanej usłudze: `scripts.kalibracja_pompki`, albo przyciskiem „Podlej” w panelu;
+   zasada bezpieczeństwa nr 1) → ustawienie czasu podlewania w panelu
+   na podstawie ml/s → pełna ścieżka „sucho → automat podlewa”.
+2. **Etap 7 — kroki właściciela** (polecenia w `docs/obrona.md`): instalacja usługi systemd + `sudo reboot`,
+   decyzja o `usb-off.service`, próba sieci na obronę (hotspot z telefonu / hotspot na Pi).
+3. **Test długoterminowy** (min. 7 dni, po etapie 2) — raport `scripts.raport` do `docs/testy.md`.
+4. **Próba generalna** na laptopie z obrony (lista kontrolna w `docs/obrona.md`).
 
 ## Proponowana struktura
 
