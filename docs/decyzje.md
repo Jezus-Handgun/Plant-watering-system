@@ -125,3 +125,19 @@ Raspberry Pi nie ma zegara czasu rzeczywistego (RTC). Po starcie czas systemowy 
 ### 20. Logowanie do pliku `automat.log`
 
 Moduł `logging` z biblioteki standardowej: każda decyzja z datą i godziną, błędy z pełnym śladem stosu. Poza diagnostyką to dane do rozdziału z badaniami (jak często gleba wysycha, ile podlań na dobę). Bez rotacji pliku: przy jednym wpisie na minutę to ok. 100 kB na dobę.
+
+## Etap 2 — zasilanie pompki
+
+### 21. Moduł z gniazdem USB-A zamiast przeciętego przedłużacza USB
+
+Pompka ma wtyk USB-A i nie chcemy przecinać jej kabla. Zasilanie musi przechodzić przez styk NO przekaźnika.
+
+| Rozwiązanie | Ocena |
+|---|---|
+| Przecięty przedłużacz USB-A m–ż (czerwona żyła przez COM/NO), zasilanie z portu USB Pi | pierwotny plan; wymaga cięcia i łączenia cienkich żył, połączenie trudne do sprawdzenia i mało trwałe |
+| Przecięcie kabla pompki | niszczy pompkę jako element wymienny |
+| **Moduł z gniazdem USB-A i goldpinami (wybrane)** | gniazdo dla nietkniętego wtyku pompki, połączenia przewodami dupont jak reszta układu, bez lutowania i cięcia; łatwo pokazać na obronie |
+
+Połączenie: Pi pin 4 (5 V) → COM, NO → VBUS modułu, GND modułu → Pi pin 9. Linie D+/D- niepodłączone.
+
+**Konsekwencja:** pompka jest zasilana z pinu 5 V złącza GPIO, a nie z portu USB — omija ogranicznik prądu portów USB Pi. Mini pompka pobiera ułamek ampera, więc przy zasilaczu 3 A to bezpieczne; spadki napięcia kontrolujemy `vcgencmd get_throttled` po każdym teście pompki. Goldpiny modułu trzeba zaizolować (zwarcie VBUS–GND = zwarcie zasilania Pi).

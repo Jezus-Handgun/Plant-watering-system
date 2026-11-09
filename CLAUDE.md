@@ -101,8 +101,8 @@ Na sali może nie być wspólnej sieci — przygotować (etap 7): hotspot Wi-Fi 
 | Moduł komparatora | **HW-103** (LM393, potencjometr) | Wyjście DO (cyfrowe) | ✅ działa |
 | Przekaźnik | **HW-307** (JQC3F-05VDC-C, 1 kanał, cewka 5 V) | Włącza pompkę | ✅ działa (przez diodę LED) |
 | Dioda LED | czerwona 5 mm | Dopasowanie poziomów 3,3 V → przekaźnik + wskaźnik pracy pompki | ✅ działa |
-| Pompka zanurzeniowa | mini pompa 5 V z wtykiem **USB-A** | Podlewanie | ⏳ czeka na przedłużacz USB |
-| Przedłużacz USB-A męski–żeński | — | Linia zasilania pompki przez przekaźnik | ⏳ do kupienia |
+| Pompka zanurzeniowa | mini pompa 5 V z wtykiem **USB-A** | Podlewanie | ⏳ czeka na moduł z gniazdem USB |
+| Moduł z gniazdem USB-A | [Botland MOD-16154](https://botland.com.pl/akcesoria-do-plytek-stykowych/16154-modul-z-gniazdem-usb-typu-a-wlutowane-zlacza-5904422300692.html): gniazdo USB-A żeńskie, 4 goldpiny 2,54 mm (GND, VBUS, D+, D-), bez innych elementów | Gniazdo dla wtyku pompki, zasilane przez przekaźnik | ⏳ do kupienia |
 | Czujnik poziomu wody | **HW-038** (S, +, −; analogowy) | — | ❌ nieużywany (wymaga ADC) |
 
 Brak przetwornika ADC (np. ADS1115) — dlatego sonda działa w **trybie cyfrowym** (DO), próg ustawiany potencjometrem na HW-103.
@@ -117,10 +117,10 @@ Numeracja **fizyczna** pinów złącza 40-pin (sprawdzona komendą `pinout`). Pi
               rząd wewnętrzny   rząd przy krawędzi
                (nieparzyste)       (parzyste)
 czerwony (sonda VCC)  → [1]  [2]  ← niebieski (przekaźnik VCC)
-                        [3]  [4]
+                        [3]  [4]  ← (planowane) 5 V → COM przekaźnika
                         [5]  [6]  ← brązowy (sonda GND)
                         [7]  [8]
-                        [9]  [10]
+GND moduł USB (plan.) → [9]  [10]
 żółty (sonda DO)      → [11] [12]
 czarny (→ LED → IN)   → [13] [14] ← fioletowy (przekaźnik GND)
 ```
@@ -173,16 +173,23 @@ Nigdy nie używaj `active_high=True` dla tego przekaźnika — pompka by się ni
 
 Test potwierdzony: przy `on()` klika przekaźnik, świeci zielona dioda modułu i czerwona LED; przy `off()` wszystko gaśnie.
 
-### Pompka (do zrobienia)
+### Pompka (do zrobienia — czeka na moduł z gniazdem USB-A)
 
-Pompka przez przecięty **przedłużacz USB-A męski–żeński** (kabel pompki zostaje nietknięty):
-- w przedłużaczu przecięta **tylko czerwona żyła** (+5 V); czarna, zielona i biała bez zmian,
-- czerwona od strony **wtyku** (do portu USB Pi) → **COM** (środkowa śruba, 公共端),
-- czerwona od strony **gniazda** (do pompki) → **NO** (śruba 常开),
-- NC (常闭) zostaje wolny,
-- przedłużacz wpięty w dowolny port USB Pi, pompka wpięta w przedłużacz.
+Pompka wpięta wtykiem USB-A (kabel nietknięty) do **modułu z gniazdem USB-A**; zasilanie gniazda przechodzi przez styk NO przekaźnika (decyzja 21 w `docs/decyzje.md`):
 
-**Dopóki pompka nie jest wpięta przez przekaźnik, nie wkładać jej bezpośrednio do USB Pi** — ruszyłaby od razu.
+| Skąd | Dokąd | Uwagi |
+|---|---|---|
+| Pi **pin 4** (5 V) | **COM** przekaźnika (środkowa śruba, 公共端) | pin 2 (5 V) zajęty przez VCC przekaźnika |
+| **NO** przekaźnika (śruba 常开) | **VBUS** modułu USB | NC (常闭) zostaje wolny |
+| **GND** modułu USB | Pi **pin 9** (GND) | wspólna masa z Pi |
+| D+, D- modułu | — | niepodłączone (pompka nie używa linii danych) |
+
+- **Który goldpin jest którym — odczytać z nadruku na płytce modułu** (strona sklepu nie podaje kolejności). Pomylenie VBUS z GND = odwrócona polaryzacja pompki.
+- Pompka dostaje 5 V prosto z szyny zasilania Pi (bez ogranicznika prądu portów USB). Mini pompka pobiera ułamek ampera — z zasilaczem 3 A to wystarczy; po teście sprawdzić `vcgencmd get_throttled` (`0x0` = brak spadków napięcia). Zwarcie VBUS–GND na module zwiera zasilanie Pi — goldpiny zaizolować.
+- Opcjonalnie: dioda (np. 1N5819/1N4007) równolegle do gniazda, zaporowo (katoda → VBUS, anoda → GND) — tłumi przepięcie z silnika pompki przy rozłączaniu styku.
+- Kolejność uruchomienia: okablowanie przy wyłączonym Pi → start Pi → dopiero wtedy wpiąć pompkę do modułu. **Pompka nie może ruszyć sama.** Jeśli rusza — wyjąć wtyk, wyłączyć Pi, sprawdzić NO/NC.
+
+**Dopóki pompka nie jest wpięta przez przekaźnik, nie wkładać jej bezpośrednio do USB Pi** — ruszyłaby od razu i pracowała bez przerwy (2026-11-09 tak się zdarzyło: test 2 s przełączył tylko przekaźnik, pompka była poza jego torem).
 
 ## Zasady bezpieczeństwa (OBOWIĄZKOWE dla Claude Code)
 
@@ -200,7 +207,7 @@ Pompka przez przecięty **przedłużacz USB-A męski–żeński** (kabel pompki 
 - [x] **Etap 1 — test sondy:** GPIO17, SUCHO/MOKRO — **działa (2026-11-04)**.
 - [x] **Etap 1b — test przekaźnika:** GPIO27 przez diodę LED, `active_high=False` — **działa (2026-11-04)**.
 - [x] **Etap 1c — test restartu:** `sudo reboot` — zielona dioda przekaźnika i czerwona LED nie mogą się zapalić podczas startu. — **działa (2026-11-04)**.
-- [ ] **Etap 2 — pompka:** przedłużacz USB przez przekaźnik (COM/NO), funkcja `podlej(sekundy)` z `try/finally` i limitem czasu. Zmierzyć, ile ml wody daje 1 s pracy pompki (do `docs/testy.md`). Kod gotowy (`Pompka.podlej()`, `scripts/kalibracja_pompki.py`) — czeka na przedłużacz USB.
+- [ ] **Etap 2 — pompka:** moduł z gniazdem USB-A przez przekaźnik (COM/NO, patrz „Pompka”), funkcja `podlej(sekundy)` z `try/finally` i limitem czasu. Zmierzyć, ile ml wody daje 1 s pracy pompki (do `docs/testy.md`). Kod gotowy (`Pompka.podlej()`, `scripts/kalibracja_pompki.py`), sterowanie przekaźnikiem i zasilanie Pi sprawdzone (2026-11-09) — **czeka na moduł z gniazdem USB-A**. Kalibracja: waga kuchenna (1 g = 1 ml), 3 × 5 s.
 - [x] **Etap 3 — moduły sprzętowe w repozytorium:** `hardware/sensor.py`, `hardware/pump.py`, `hardware/fake.py`, skrypty w `scripts/`, testy na atrapach — **zrobione (2026-11-04)**.
 - [x] **Etap 4 — automat:** pętla: odczyt sondy (decyzja większościowa) → jeśli sucho i minęła przerwa → podlej N sekund. Logowanie do pliku. — **zrobione (2026-11-09)**: `app/controller.py`, uruchomienie `uv run python -m app.controller` (na Windowsie z `HARDWARE_MODE=simulation`). Na Pi z pompką — dopiero po etapie 2 i potwierdzeniu wody.
 - [ ] **Etap 5 — backend:** Flask + SQLite (fabryka `create_app()`, blueprinty). Modele: pomiary, cykle podlewania, ustawienia. Endpointy wzorowane na starym projekcie: `GET /api/status`, `GET /api/history/...`, `POST /api/water` (ręczne podlanie z limitem czasu), `POST /api/stop`, `GET/PUT /api/settings`.
