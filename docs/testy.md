@@ -43,11 +43,11 @@ Materiał do rozdziału z badaniami. Każdy wpis: data, co testowano, jak, wynik
   - sonda: SUCHO → decyzja `przerwa` (zgodnie z założeniem: po starcie automat najpierw odczekuje przerwę),
   - po przerwaniu (SIGINT) wykonało się `finally` — wpis „Koniec pracy automatu” w `automat.log`.
 
-## 2026-11-09 — Etap 2 (częściowo): sterowanie przekaźnikiem pod obciążeniem programu
+## 2026-11-09 — Etap 2 (częściowo): sterowanie przekaźnikiem skryptem kalibracji
 
 - **Polecenie:** `scripts/kalibracja_pompki.py 2` (po potwierdzeniu: pompka w wodzie, wąż w naczyniu).
 - **Wynik:** przekaźnik włączony przez **2,00 s**, czerwona LED świeciła i zgasła; `vcgencmd get_throttled` przed i po = `0x0` (brak spadków napięcia).
-- **Ograniczenie:** pompka była wpięta bezpośrednio do portu USB Pi, poza torem przekaźnika — **nie** sprawdzono sterowania pompką ani wydajności (ml/s). Pompkę odłączono; czeka na moduł z gniazdem USB-A (decyzja 21).
+- **Ograniczenie:** pompka była wpięta bezpośrednio do portu USB Pi, poza torem przekaźnika — **nie** sprawdzono sterowania pompką ani wydajności (ml/s). Zalecono odłączenie pompki od USB; etap czeka na moduł z gniazdem USB-A (decyzja 21).
 
 ## Do zrobienia
 
