@@ -64,6 +64,7 @@ Materiał do rozdziału z badaniami. Każdy wpis: data, co testowano, jak, wynik
 - **Podgląd w przeglądarce** (Chrome bez okna, symulacja, baza z 24 h przykładowych danych):
   - szerokość 1280 px: trzy karty w rzędzie, wykres 24 h z pasami sucho/mokro, luka 30 min w danych widoczna jako przerwa, 5 podlań w tabeli,
   - szerokość 390 px (telefon): karty jedna pod drugą, wykres przewijany w poziomie z czytelnymi napisami, tabela mieści się.
+- **Pi, tryb `real`:** panel otwarty z komputera pod `http://raspi.local:5000` — plakietka „Połączono z Pi”, stan SUCHO z prawdziwej sondy, decyzja „trwa przerwa na wsiąknięcie”, na wykresie pomiary zapisane w SQLite na Pi; aplikacja zatrzymana sygnałem SIGTERM.
 - **Nie sprawdzono w przeglądarce:** kliknięć „Podlej”/„Zatrzymaj”/„Zapisz” (te same endpointy są pokryte testami API).
 
 ## Do zrobienia
