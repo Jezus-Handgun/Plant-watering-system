@@ -49,6 +49,16 @@ Materiał do rozdziału z badaniami. Każdy wpis: data, co testowano, jak, wynik
 - **Wynik:** przekaźnik włączony przez **2,00 s**, czerwona LED świeciła i zgasła; `vcgencmd get_throttled` przed i po = `0x0` (brak spadków napięcia).
 - **Ograniczenie:** pompka była wpięta bezpośrednio do portu USB Pi, poza torem przekaźnika — **nie** sprawdzono sterowania pompką ani wydajności (ml/s). Zalecono odłączenie pompki od USB; etap czeka na moduł z gniazdem USB-A (decyzja 21).
 
+## 2026-11-09 — Etap 5: backend Flask + SQLite
+
+- **Testy jednostkowe** (`uv run pytest`): 50/50 na komputerze i na Pi — logika automatu, sterownik z bazą, migracje i stronicowanie bazy, API (walidacja danych, `202`/`409`, przerwanie podlewania przez `/api/stop`).
+- **Symulacja na Windowsie** (`HARDWARE_MODE=simulation`, prawdziwy serwer HTTP): `POST /api/water` 2 s → pompka pracuje, `POST /api/stop` → zatrzymana po **0,76 s**, w historii `czas_pracy_s = 0,76`; `PUT /api/settings` z przerwą 5 min odrzucone (`400`).
+- **Pi, tryb `real`** (`uv run python run.py`, pompka niepodłączona, bez `/api/water`):
+  - zapytania z komputera przez sieć (`http://raspi.local:5000`): `/api/status`, `/api/settings`, `/api/history/pomiary` → `200`, w historii pomiary z sondy zapisane w SQLite na Pi,
+  - automat: pomiar co 60 s, sucho → decyzja `przerwa` (przerwa po starcie),
+  - `SIGTERM` (jak `systemctl stop`) → czyste zamknięcie, wpis „Koniec pracy aplikacji”.
+
 ## Do zrobienia
 
 - Etap 2: ile ml wody daje 1 s pracy pompki.
+- Pełna ścieżka na sprzęcie: sucho → automat podlewa → pompka rusza (po etapie 2).
