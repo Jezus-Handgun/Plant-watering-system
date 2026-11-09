@@ -36,6 +36,13 @@ Materiał do rozdziału z badaniami. Każdy wpis: data, co testowano, jak, wynik
 - **Testy jednostkowe na atrapach** (`uv run pytest`): 12/12 zaliczonych na komputerze (Windows) i na Pi.
 - **Sonda przez nowy moduł** (`uv run python -m scripts.test_sondy`, 5 s): odczyt surowy i decyzja większościowa zgodne — SUCHO przez cały czas trwania testu.
 
+## 2026-11-09 — Etap 4: automat podlewania
+
+- **Testy jednostkowe** (`uv run pytest`): 18/18 na komputerze i na Pi. Fałszywy zegar sprawdza przerwę 15 min, limit 5 podlań/24 h i jego odnowienie oraz zachowanie przy awarii pompki.
+- **Uruchomienie na Pi** (`uv run python -m app.controller`, tryb `real`, 5 s, pompka niepodłączona):
+  - sonda: SUCHO → decyzja `przerwa` (zgodnie z założeniem: po starcie automat najpierw odczekuje przerwę),
+  - po przerwaniu (SIGINT) wykonało się `finally` — wpis „Koniec pracy automatu” w `automat.log`.
+
 ## Do zrobienia
 
 - Etap 2: ile ml wody daje 1 s pracy pompki.
