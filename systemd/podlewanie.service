@@ -1,0 +1,29 @@
+# Usługa: aplikacja podlewania (panel + API + automat) startuje razem z Raspberry Pi.
+# Instalacja i obsługa: docs/obrona.md, sekcja „Usługa systemd”.
+
+[Unit]
+Description=Automatyczne podlewanie roślin (Flask + automat)
+# Bez czekania na sieć: na obronie Pi może startować bez Wi-Fi, a automat i tak ma działać.
+After=network.target
+
+[Service]
+Type=simple
+# Zwykły użytkownik (należy do grupy gpio) — bez uprawnień roota.
+User=raspi
+Group=raspi
+WorkingDirectory=/home/raspi/plant-watering-system
+Environment=HARDWARE_MODE=real
+Environment=PYTHONUNBUFFERED=1
+# Python z .venv projektu, a nie `uv run`: start nie potrzebuje sieci ani synchronizacji
+# zależności. Po `git pull` ze zmianą zależności: `uv sync`, potem restart usługi.
+ExecStart=/home/raspi/plant-watering-system/.venv/bin/python run.py
+# Po awarii restart za 10 s. Automat po starcie zawsze najpierw odczekuje przerwę,
+# więc pętla restartów nie oznacza wielokrotnego podlewania (decyzja 19).
+Restart=on-failure
+RestartSec=10
+# SIGTERM → run.py wyłącza pompkę w finally i zamyka GPIO.
+KillSignal=SIGTERM
+TimeoutStopSec=30
+
+[Install]
+WantedBy=multi-user.target
