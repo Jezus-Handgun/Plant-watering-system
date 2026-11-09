@@ -27,6 +27,18 @@ def sterownik(app):
     return app.extensions["sterownik"]
 
 
+def test_panel_i_pliki_statyczne(klient):
+    strona = klient.get("/")
+    assert strona.status_code == 200
+    html = strona.get_data(as_text=True)
+    assert "Panel sterowania" in html
+    assert "http" not in html.replace("http://www.w3.org", "")  # bez zasobów z internetu
+    for plik in ("/static/panel.css", "/static/panel.js"):
+        odp = klient.get(plik)
+        assert odp.status_code == 200
+        odp.close()
+
+
 def test_status(klient, sterownik):
     ustaw_sonde(sucho=True)
     sterownik.krok()

@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="pl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Podlewanie — panel</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='panel.css') }}" />
+  </head>
+  <body>
+    <main class="shell">
+      <header class="hero">
+        <div>
+          <p class="eyebrow">Automatyczne podlewanie</p>
+          <h1>Panel sterowania</h1>
+          <p class="sub">Stan gleby, ręczne podlewanie i historia — Raspberry Pi 4</p>
+        </div>
+        <div class="status-pill" id="polaczenie" role="status">Łączenie…</div>
+      </header>
+
+      <section class="grid">
+        <article class="card">
+          <h2>Stan gleby</h2>
+          <p class="gleba" id="gleba" data-stan="brak">—</p>
+          <p class="muted" id="czasPomiaru">Brak pomiaru</p>
+          <p class="decyzja" id="decyzja"></p>
+        </article>
+
+        <article class="card">
+          <h2>Podlewanie ręczne</h2>
+          <p class="muted">Twoja decyzja: bez przerwy i limitu automatu, maks. 10 s.</p>
+          <form id="formPodlej" class="podlej">
+            <label for="sekundy">Czas (s)</label>
+            <input id="sekundy" name="sekundy" type="number" min="1" max="10" step="1" value="3" required />
+            <button type="submit" class="primary" id="przyciskPodlej">Podlej</button>
+          </form>
+          <button type="button" class="danger" id="przyciskStop">Zatrzymaj pompkę</button>
+          <p class="pompka" id="pompka" data-pracuje="false">Pompka: stoi</p>
+          <p class="note" id="notaPodlej" role="status" aria-live="polite"></p>
+        </article>
+
+        <article class="card">
+          <h2>Automat</h2>
+          <p class="state" id="automat">—</p>
+          <p class="muted" id="limit"></p>
+          <p class="muted" id="ostatniePodlanie"></p>
+        </article>
+      </section>
+
+      <section class="card wide">
+        <h2>Historia — ostatnie 24 h</h2>
+        <p class="muted" id="podsumowanie"></p>
+        <div class="table-scroll">
+          <svg id="wykres" viewBox="0 0 900 200" role="img" aria-labelledby="podsumowanie"></svg>
+        </div>
+        <p class="legenda">
+          <span class="lg lg-sucho"></span> sucho
+          <span class="lg lg-mokro"></span> mokro
+          <span class="lg lg-auto"></span> podlanie automatu
+          <span class="lg lg-reczne"></span> podlanie ręczne
+        </p>
+        <div class="table-scroll">
+          <table>
+            <caption>Ostatnie podlania (czas lokalny)</caption>
+            <thead>
+              <tr><th>Rozpoczęcie</th><th>Źródło</th><th>Zadany czas</th><th>Faktyczny czas</th><th>Błąd</th></tr>
+            </thead>
+            <tbody id="tabelaPodlan"></tbody>
+          </table>
+        </div>
+        <button type="button" class="ghost" id="starsze" hidden>Starsze podlania</button>
+      </section>
+
+      <section class="card wide">
+        <h2>Ustawienia automatu</h2>
+        <form id="formUstawienia" class="settings-grid">
+          <label class="check-label"><input name="automat_wlaczony" type="checkbox" /> Automat włączony</label>
+          <label>Czas podlewania (s) <input name="czas_podlewania_s" type="number" min="1" max="10" step="1" required /></label>
+          <label>Przerwa na wsiąkanie (min) <input name="przerwa_min" type="number" min="15" max="1440" step="1" required /></label>
+          <label>Limit podlań na dobę <input name="limit_dobowy" type="number" min="1" max="20" step="1" required /></label>
+          <button type="submit" class="primary">Zapisz ustawienia</button>
+        </form>
+        <p class="note" id="notaUstawienia" role="status" aria-live="polite"></p>
+        <p class="muted">
+          Sonda daje odczyt binarny (sucho/mokro); próg ustawia się potencjometrem na module HW-103.
+          Automat po starcie i po każdym podlaniu odczekuje przerwę, a limit dobowy liczy podlania z ostatnich 24 h.
+        </p>
+      </section>
+    </main>
+    <script src="{{ url_for('static', filename='panel.js') }}"></script>
+  </body>
+</html>

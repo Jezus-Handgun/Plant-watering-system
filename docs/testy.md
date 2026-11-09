@@ -58,6 +58,14 @@ Materiał do rozdziału z badaniami. Każdy wpis: data, co testowano, jak, wynik
   - automat: pomiar co 60 s, sucho → decyzja `przerwa` (przerwa po starcie),
   - `SIGTERM` (jak `systemctl stop`) → czyste zamknięcie, wpis „Koniec pracy aplikacji”.
 
+## 2026-11-09 — Etap 6: panel webowy
+
+- **Testy jednostkowe:** 51/51 (nowy: strona `/` i pliki statyczne, brak zasobów z internetu).
+- **Podgląd w przeglądarce** (Chrome bez okna, symulacja, baza z 24 h przykładowych danych):
+  - szerokość 1280 px: trzy karty w rzędzie, wykres 24 h z pasami sucho/mokro, luka 30 min w danych widoczna jako przerwa, 5 podlań w tabeli,
+  - szerokość 390 px (telefon): karty jedna pod drugą, wykres przewijany w poziomie z czytelnymi napisami, tabela mieści się.
+- **Nie sprawdzono w przeglądarce:** kliknięć „Podlej”/„Zatrzymaj”/„Zapisz” (te same endpointy są pokryte testami API).
+
 ## Do zrobienia
 
 - Etap 2: ile ml wody daje 1 s pracy pompki.

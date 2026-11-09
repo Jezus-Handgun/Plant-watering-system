@@ -2,7 +2,7 @@
 
 import os
 
-from flask import Flask
+from flask import Flask, render_template
 
 from app.api import api
 from app.controller import Sterownik
@@ -35,6 +35,10 @@ def create_app(konfiguracja: dict | None = None) -> Flask:
     app.extensions["baza"] = baza
     app.extensions["sterownik"] = sterownik
     app.register_blueprint(api)
+
+    @app.get("/")
+    def panel():
+        return render_template("index.html")
 
     if app.config["URUCHOM_AUTOMAT"]:
         sterownik.start(app.config["ODSTEP_POMIARU_S"])

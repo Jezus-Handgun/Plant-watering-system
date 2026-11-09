@@ -211,3 +211,30 @@ Ustalone z właścicielem. Panel działa w sieci lokalnej albo na hotspocie Pi (
 ### 29. Serwer WWW — na razie wbudowany serwer Flaska
 
 `run.py` uruchamia wbudowany serwer (Werkzeug) w trybie wielowątkowym, w jednym procesie (decyzja 23). Wystarcza dla jednego użytkownika w sieci lokalnej. Wybór serwera dla usługi systemd (np. `waitress`) — w etapie 7.
+
+## Etap 6 — panel webowy
+
+### 30. Panel bez zasobów z internetu
+
+Stary panel ładował czcionki z Google Fonts. Na obronie Pi może działać jako hotspot **bez dostępu do internetu** — wtedy strona czekałaby na niedostępne zasoby. Nowy panel korzysta wyłącznie z plików serwowanych przez Flask (`app/templates/index.html`, `app/static/panel.css`, `app/static/panel.js`) i czcionek systemowych. Test `test_panel_i_pliki_statyczne` pilnuje, żeby w HTML nie pojawił się adres zewnętrzny.
+
+**Wzięto ze starego projektu:** ciemny turkusowy motyw, układ kart (stan / podlewanie / automat, pod spodem historia i ustawienia), kolory akcji, wykres w SVG rysowany bez biblioteki. **Pominięto:** sekcje sprzętu, którego nie mamy (zawór, przepływomierz, kalibracja objętości, kanały czujników).
+
+### 31. Czysty JavaScript zamiast frameworka (React, Vue) i bez bibliotek wykresów
+
+Panel to jedna strona z kilkoma kartami i jednym wykresem. Framework wymagałby kroku budowania (Node.js, bundler) i większej liczby plików do utrzymania — bez korzyści przy tej skali. Biblioteka wykresów (np. Chart.js) musiałaby być dołączona lokalnie (decyzja 30), a wykres binarny jest prosty do narysowania w SVG.
+
+### 32. Wykres jako oś czasu (pasy sucho/mokro), nie wykres liniowy
+
+Sonda daje odczyt binarny, więc klasyczny wykres liniowy wilgotności w % nie ma sensu. Wykres pokazuje 24 h jako dwa pasy (**sucho** / **mokro**) i znaczniki podlań (automat / ręczne, różne kolory i opis w dymku). Kolejne pomiary o tym samym stanie są łączone w jeden odcinek; luka dłuższa niż 5 min między pomiarami zostaje pusta — widać, kiedy aplikacja nie działała. Informacja nie jest przekazywana wyłącznie kolorem: wiersze mają podpisy, a nad wykresem jest tekstowe podsumowanie (procent czasu sucho, liczba podlań).
+
+### 33. Odświeżanie przez cykliczne odpytywanie (polling)
+
+Panel co 2 s pobiera `/api/status` (pompka pracuje / stoi), a co 60 s historię — oraz od razu po nowym podlaniu.
+
+- **Alternatywa:** WebSocket lub Server-Sent Events (serwer sam wysyła zmiany).
+- **Dlaczego odrzucona:** wymaga dodatkowej biblioteki albo trwałych połączeń, a przy jednym użytkowniku w sieci lokalnej zapytanie co 2 s to znikome obciążenie Pi. Odpowiedzi API mają `Cache-Control: no-store`, więc przeglądarka zawsze pokazuje aktualny stan.
+
+### 34. Bezpieczeństwo panelu: dane z serwera tylko przez `textContent`
+
+Wszystkie dane z API (np. komunikat błędu zapisany w bazie) trafiają do strony przez `textContent` / `createElement`, nigdy przez `innerHTML`. Tekst z bazy nie może więc wstrzyknąć kodu HTML/JS do panelu (atak XSS).
