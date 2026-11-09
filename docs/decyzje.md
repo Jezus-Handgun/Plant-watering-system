@@ -141,3 +141,73 @@ Pompka ma wtyk USB-A i nie chcemy przecinać jej kabla. Zasilanie musi przechodz
 Połączenie: Pi pin 4 (5 V) → COM, NO → VBUS modułu, GND modułu → Pi pin 9. Linie D+/D- niepodłączone.
 
 **Konsekwencja:** pompka jest zasilana z pinu 5 V złącza GPIO, a nie z portu USB — omija ogranicznik prądu portów USB Pi. Mini pompka pobiera ułamek ampera, więc przy zasilaczu 3 A to bezpieczne; spadki napięcia kontrolujemy `vcgencmd get_throttled` po każdym teście pompki. Goldpiny modułu trzeba zaizolować (zwarcie VBUS–GND = zwarcie zasilania Pi).
+
+## Etap 5 — backend (Flask + SQLite)
+
+### 22. Automat jako czysta logika, `Sterownik` jako jedyny właściciel sprzętu
+
+Zmiana względem decyzji 16. W etapie 4 `Automat.krok()` sam czytał sondę i włączał pompkę. Po dodaniu ręcznego podlewania z API pompkę uruchamiałyby dwa miejsca, więc podzielono odpowiedzialność:
+
+- `Automat.decyduj(sucho)` — **czysta funkcja decyzji** (przerwa, limit, start), bez sprzętu i bazy; testy nie potrzebują nawet atrapy pinów,
+- `Sterownik` — jedyny obiekt, który dotyka sondy i pompki: wątek automatu, ręczne podlewanie, blokada pompki, zapis do bazy.
+
+Samodzielna pętla `python -m app.controller` z etapu 4 została usunięta — automat działa teraz jako wątek aplikacji uruchamianej przez `run.py`.
+
+### 23. Jeden proces: automat jako wątek w aplikacji Flask
+
+- **Alternatywa:** automat i serwer WWW jako dwa osobne procesy (np. dwie usługi systemd).
+- **Dlaczego odrzucona:** pin GPIO może mieć tylko jednego właściciela, więc procesy musiałyby się komunikować (kolejka, plik, gniazdo), żeby przycisk „Podlej” mógł użyć pompki. W jednym procesie wystarczy wspólny obiekt `Sterownik`.
+- **Konsekwencja:** aplikacji nie wolno uruchamiać w kilku procesach (np. gunicorn z wieloma workerami) — tylko jeden proces z wątkami.
+- **Blokada pompki** (`threading.Lock`, próba bez czekania): automat i ręczne podlewanie nigdy nie pracują jednocześnie; drugie żądanie `POST /api/water` dostaje `409 Conflict`.
+
+### 24. Ręczne podlewanie — decyzja człowieka
+
+Ustalone z właścicielem: przycisk „Podlej” działa niezależnie od automatu.
+
+| Reguła | Automat | Ręczne |
+|---|---|---|
+| Twardy limit 10 s | tak | tak |
+| Przerwa 15 min | tak | **nie** (człowiek widzi roślinę) |
+| Limit dobowy | tak | **nie** (nie wlicza się do limitu automatu) |
+| Po podlaniu | — | automat odczekuje przerwę, żeby nie dolać przed wsiąknięciem |
+
+Automat można wyłączyć w ustawieniach (`automat_wlaczony`) — pomiary są nadal zapisywane.
+
+`POST /api/water` odpowiada od razu `202 Accepted`, a pompka pracuje w osobnym wątku (wzór ze starego projektu). `POST /api/stop` przerywa podlewanie: `Pompka.podlej()` czeka na `threading.Event` zamiast `time.sleep`, więc inny wątek może przerwać oczekiwanie (`Pompka.zatrzymaj()`).
+
+### 25. SQLite przez moduł `sqlite3` z biblioteki standardowej
+
+- **Alternatywa:** ORM (SQLAlchemy / Flask-SQLAlchemy).
+- **Dlaczego odrzucona:** trzy proste tabele (`pomiary`, `podlania`, `ustawienia`); SQL jest krótki i widać dokładnie, co trafia do bazy. Mniej zależności na Pi.
+
+Rozwiązania **wzięte ze starego projektu** (klasa `Store`):
+- krótkie połączenie na każdą operację — połączenia `sqlite3` nie wolno współdzielić między wątkami (automat + żądania HTTP),
+- tryb WAL — odczyt historii przez panel nie blokuje zapisu pomiaru,
+- wersja schematu w `PRAGMA user_version` i migracje krokami,
+- historia stronicowana po `id` (`przed_id`, odpowiednik `before`), a nie przez `OFFSET`: nowe pomiary dopisywane w trakcie przeglądania nie przesuwają stron.
+
+**Uproszczono:** brak importu danych ze starych tabel, tabel zdarzeń, kanałów czujników i danych przepływomierza. Migracja wykonuje się w jednej transakcji z ustawieniem `user_version` — awaria w połowie nie zostawia bazy w stanie pośrednim.
+
+Czas zapisywany jako liczba sekund od 1970 r. (UTC, `time.time()`): proste porównania w SQL i łatwe formatowanie w przeglądarce.
+
+### 26. Limit dobowy przetrwa restart
+
+Usunięte ograniczenie z decyzji 19. Przy starcie `Sterownik` czyta z bazy podlania automatu z ostatnich 24 h. Baza zapisuje czas ścienny, a automat liczy na zegarze monotonicznym (decyzja 18), więc przeliczany jest **wiek** podlania: `teraz_monotoniczny − (teraz_ścienny − czas_podlania)`.
+
+Pi bez sieci startuje z czasem z chwili ostatniego wyłączenia (cofniętym). Wtedy wiek wychodzi **zaniżony**, podlania wyglądają na świeższe, a automat jest ostrożniejszy — błąd zegara nie powoduje dodatkowego podlewania.
+
+### 27. Walidacja danych na granicy zaufania (`app/api.py`)
+
+Każde wejście z sieci jest sprawdzane przed przekazaniem dalej:
+- **ścisłe typy:** `True` nie przechodzi jako `1` (w Pythonie `bool` jest podklasą `int`), `"3"` i `2.5` nie przechodzą jako liczba całkowita,
+- **zakresy:** czas podlewania 1–10 s, przerwa 15–1440 min (zasada bezpieczeństwa nr 3), limit 1–20,
+- **nieznane klucze odrzucane**, a błąd w jednym polu odrzuca całe żądanie — ustawienia nie zmieniają się częściowo,
+- nazwa tabeli historii z listy dozwolonych (nie da się jej przekazać jako parametru SQL).
+
+### 28. Panel bez logowania
+
+Ustalone z właścicielem. Panel działa w sieci lokalnej albo na hotspocie Pi (obrona). **Świadome ograniczenie:** każdy w tej sieci może podlać roślinę lub zmienić ustawienia. Skutki ogranicza sprzęt i backend: maks. 10 s na podlanie, jedno podlewanie naraz, ustawienia tylko w bezpiecznych zakresach. Rozszerzenie (np. hasło w panelu) — poza zakresem pracy.
+
+### 29. Serwer WWW — na razie wbudowany serwer Flaska
+
+`run.py` uruchamia wbudowany serwer (Werkzeug) w trybie wielowątkowym, w jednym procesie (decyzja 23). Wystarcza dla jednego użytkownika w sieci lokalnej. Wybór serwera dla usługi systemd (np. `waitress`) — w etapie 7.

@@ -3,6 +3,7 @@ name = "plant-watering-system"
 version = "0.1.0"
 requires-python = ">=3.13"
 dependencies = [
+    "flask>=3.1.3",
     "gpiozero>=2.0.1.post3",
     "lgpio>=0.2.2.0 ; sys_platform == 'linux'",
 ]
