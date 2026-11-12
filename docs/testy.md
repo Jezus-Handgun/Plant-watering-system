@@ -84,10 +84,20 @@ Materiał do rozdziału z badaniami. Każdy wpis: data, co testowano, jak, wynik
 |---|---|---|---|---|---|---|---|
 | 2026-11-09 | 5 | 100 | 1 | 0 | 0 | 0 | 0 |
 
+## 2026-11-12 — Etap 2 (bez pompki): HW-766 podłączony, usługa systemd
+
+Okablowanie: Pi pin 4 (5 V) → COM, NO → VBUS HW-766, GND HW-766 → Pi pin 9 (decyzja 41). **Pompka niewpięta.**
+
+- **Usługa `podlewanie`** startuje razem z Pi (start 20:17:56, usługa od pierwszych sekund); w dzienniku brak błędów, ostrzeżeń i restartów po awarii; `usb-off.service` wyłączona.
+- **Ponownie przeskok zegara po starcie:** pierwsze wpisy usługi mają datę 2026-11-09 19:10 (czas z poprzedniego wyłączenia), poprawny czas po synchronizacji NTP — automat (zegar monotoniczny) działał poprawnie.
+- **„GPIO busy” przy uruchamianiu skryptów** — przyczyna: GPIO17 i GPIO27 trzyma działająca usługa (`gpioinfo`: oba piny z `consumer="lg"`, jedyny proces z otwartym `/dev/gpiochip` = `run.py` usługi). Zachowanie poprawne (jeden właściciel GPIO, decyzja 23).
+- **Pełna ścieżka automatu na sprzęcie** (bez pompki): sonda SUCHO, przerwa po starcie 15 min → o 20:33:17 decyzja `podlano` → przekaźnik włączony **3,00 s** → wpis w bazie (`zrodlo = automat`); `vcgencmd get_throttled` = `0x0`.
+- **Ręczne podlewanie przez API:** `POST /api/water` 10 s → `202`; drugie żądanie w trakcie → `409 Pompka już pracuje`; `POST /api/stop` po ok. 1,5 s → przekaźnik wyłączony, w historii `czas_pracy_s = 2,07` z zadanych 10 s; `throttled = 0x0`.
+- 53/53 testów jednostkowych na Pi.
+
 ## Do zrobienia
 
 - Etap 2: ile ml wody daje 1 s pracy pompki.
 - Pełna ścieżka na sprzęcie: sucho → automat podlewa → pompka rusza (po etapie 2).
-- Usługa systemd: test restartu (`sudo reboot`) po instalacji.
 - Test długoterminowy (min. 7 dni, po etapie 2) — raport `scripts.raport`.
 - Próba generalna na laptopie z obrony (wybrana sieć).

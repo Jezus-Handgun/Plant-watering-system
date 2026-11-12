@@ -81,10 +81,13 @@ Ruff + testy z atrapami       ── ssh raspi@raspi.local "..." ──▶  test
   nie wczytuje końca `~/.bashrc`, gdzie instalator uv dopisał `PATH`;
   `-t` tworzy terminal: Ctrl+C trafia do skryptu na Pi, działa `input()`. Bez `-t` Ctrl+C
   zamyka tylko klienta SSH, a skrypt na Pi działa dalej i trzyma GPIO — „GPIO busy”)
-- **Gdy usługa `podlewanie` jest zainstalowana, to ona trzyma GPIO.** Przed skryptami testowymi
+- **Usługa `podlewanie` jest zainstalowana i działa od startu Pi (od 2026-11-09) — to ona trzyma GPIO17 i GPIO27.** Przed skryptami testowymi
   `sudo systemctl stop podlewanie`, po nich `sudo systemctl start podlewanie` (szczegóły: `docs/obrona.md`).
-- Na Pi jest włączona stara usługa `usb-off.service` (wyłącza zasilanie wszystkich portów USB przy starcie,
-  pozostałość po odrzuconym `uhubctl`) — zalecane wyłączenie, decyzja 37.
+- Na Pi była włączona stara usługa `usb-off.service` (wyłącza zasilanie wszystkich portów USB przy starcie,
+  pozostałość po odrzuconym `uhubctl`) — **wyłączona** (decyzja 37).
+- W katalogu domowym Pi (`~`) leżą stare skrypty spoza repozytorium (`test_sondy.py`, `test_led.py`,
+  `test_przekaznika.py`). **`test_przekaznika.py` steruje przekaźnikiem odrzuconą metodą** (LOW = wł.,
+  zwolnienie pinu = wył., 5 × 2 s) — nie uruchamiać przy wpiętej pompce. Używać skryptów z `scripts/`.
 - Logowanie SSH kluczem `id_ed25519` (bez hasła). Jeśli SSH pyta o hasło — powiedz właścicielowi, nie próbuj obchodzić.
 - Przed każdym poleceniem, które może włączyć pompkę, obowiązuje zasada bezpieczeństwa nr 1 (pytanie o wodę).
 
@@ -105,8 +108,8 @@ Na sali może nie być wspólnej sieci — przygotować (etap 7): hotspot Wi-Fi 
 | Moduł komparatora | **HW-103** (LM393, potencjometr) | Wyjście DO (cyfrowe) | ✅ działa |
 | Przekaźnik | **HW-307** (JQC3F-05VDC-C, 1 kanał, cewka 5 V) | Włącza pompkę | ✅ działa (przez diodę LED) |
 | Dioda LED | czerwona 5 mm | Dopasowanie poziomów 3,3 V → przekaźnik + wskaźnik pracy pompki | ✅ działa |
-| Pompka zanurzeniowa | mini pompa 5 V z wtykiem **USB-A** | Podlewanie | ⏳ czeka na moduł z gniazdem USB |
-| Moduł z gniazdem USB-A | [Botland MOD-16154](https://botland.com.pl/akcesoria-do-plytek-stykowych/16154-modul-z-gniazdem-usb-typu-a-wlutowane-zlacza-5904422300692.html): gniazdo USB-A żeńskie, 4 goldpiny 2,54 mm (GND, VBUS, D+, D-), bez innych elementów | Gniazdo dla wtyku pompki, zasilane przez przekaźnik | ⏳ do kupienia |
+| Pompka zanurzeniowa | mini pompa 5 V z wtykiem **USB-A** | Podlewanie | ⏳ test z pompką (HW-766 już podłączony) |
+| Moduł z gniazdem USB-A | **HW-766**: gniazdo USB-A żeńskie, 4 piny 2,54 mm opisane na płytce (VBUS, D-, D+, GND), bez innych elementów (zamiast planowanego Botland MOD-16154 — ten sam układ, decyzja 41) | Gniazdo dla wtyku pompki, zasilane przez przekaźnik | ✅ podłączony (2026-11-12) |
 | Czujnik poziomu wody | **HW-038** (S, +, −; analogowy) | — | ❌ nieużywany (wymaga ADC) |
 
 Brak przetwornika ADC (np. ADS1115) — dlatego sonda działa w **trybie cyfrowym** (DO), próg ustawiany potencjometrem na HW-103.
@@ -121,10 +124,10 @@ Numeracja **fizyczna** pinów złącza 40-pin (sprawdzona komendą `pinout`). Pi
               rząd wewnętrzny   rząd przy krawędzi
                (nieparzyste)       (parzyste)
 czerwony (sonda VCC)  → [1]  [2]  ← niebieski (przekaźnik VCC)
-                        [3]  [4]  ← (planowane) 5 V → COM przekaźnika
+                        [3]  [4]  ← zielony (5 V → COM przekaźnika, zasilanie pompki)
                         [5]  [6]  ← brązowy (sonda GND)
                         [7]  [8]
-GND moduł USB (plan.) → [9]  [10]
+pomarańczowy (GND HW-766) → [9]  [10]
 żółty (sonda DO)      → [11] [12]
 czarny (→ LED → IN)   → [13] [14] ← fioletowy (przekaźnik GND)
 ```
@@ -177,18 +180,18 @@ Nigdy nie używaj `active_high=True` dla tego przekaźnika — pompka by się ni
 
 Test potwierdzony: przy `on()` klika przekaźnik, świeci zielona dioda modułu i czerwona LED; przy `off()` wszystko gaśnie.
 
-### Pompka (do zrobienia — czeka na moduł z gniazdem USB-A)
+### Pompka przez HW-766 (okablowanie zrobione 2026-11-12, test z pompką do zrobienia)
 
-Pompka wpięta wtykiem USB-A (kabel nietknięty) do **modułu z gniazdem USB-A**; zasilanie gniazda przechodzi przez styk NO przekaźnika (decyzja 21 w `docs/decyzje.md`):
+Pompka wpięta wtykiem USB-A (kabel nietknięty) do **HW-766** (płytka z gniazdem USB-A); zasilanie gniazda przechodzi przez styk NO przekaźnika (decyzje 21 i 41 w `docs/decyzje.md`):
 
-| Skąd | Dokąd | Uwagi |
-|---|---|---|
-| Pi **pin 4** (5 V) | **COM** przekaźnika (środkowa śruba, 公共端) | pin 2 (5 V) zajęty przez VCC przekaźnika |
-| **NO** przekaźnika (śruba 常开) | **VBUS** modułu USB | NC (常闭) zostaje wolny |
-| **GND** modułu USB | Pi **pin 9** (GND) | wspólna masa z Pi |
-| D+, D- modułu | — | niepodłączone (pompka nie używa linii danych) |
+| Kolor przewodu | Skąd | Dokąd | Uwagi |
+|---|---|---|---|
+| zielony | Pi **pin 4** (5 V) | **COM** przekaźnika (środkowa śruba, 公共端) | pin 2 (5 V) zajęty przez VCC przekaźnika |
+| biały | **NO** przekaźnika (górna śruba, 常开) | **VBUS** HW-766 | NC (常闭, dolna śruba) zostaje wolny |
+| pomarańczowy | Pi **pin 9** (GND) | **GND** HW-766 | wspólna masa z Pi |
+| — | D+, D- HW-766 | — | niepodłączone (pompka nie używa linii danych) |
 
-- **Który goldpin jest którym — odczytać z nadruku na płytce modułu** (strona sklepu nie podaje kolejności). Pomylenie VBUS z GND = odwrócona polaryzacja pompki.
+- Piny HW-766 są opisane na płytce (VBUS, D-, D+, GND). Pomylenie VBUS z GND = odwrócona polaryzacja pompki.
 - Pompka dostaje 5 V prosto z szyny zasilania Pi (bez ogranicznika prądu portów USB). Mini pompka pobiera ułamek ampera — z zasilaczem 3 A to wystarczy; po teście sprawdzić `vcgencmd get_throttled` (`0x0` = brak spadków napięcia). Zwarcie VBUS–GND na module zwiera zasilanie Pi — goldpiny zaizolować.
 - Opcjonalnie: dioda (np. 1N5819/1N4007) równolegle do gniazda, zaporowo (katoda → VBUS, anoda → GND) — tłumi przepięcie z silnika pompki przy rozłączaniu styku.
 - Kolejność uruchomienia: okablowanie przy wyłączonym Pi → start Pi → dopiero wtedy wpiąć pompkę do modułu. **Pompka nie może ruszyć sama.** Jeśli rusza — wyjąć wtyk, wyłączyć Pi, sprawdzić NO/NC.
@@ -211,25 +214,26 @@ Pompka wpięta wtykiem USB-A (kabel nietknięty) do **modułu z gniazdem USB-A**
 - [x] **Etap 1 — test sondy:** GPIO17, SUCHO/MOKRO — **działa (2026-11-04)**.
 - [x] **Etap 1b — test przekaźnika:** GPIO27 przez diodę LED, `active_high=False` — **działa (2026-11-04)**.
 - [x] **Etap 1c — test restartu:** `sudo reboot` — zielona dioda przekaźnika i czerwona LED nie mogą się zapalić podczas startu. — **działa (2026-11-04)**.
-- [ ] **Etap 2 — pompka:** moduł z gniazdem USB-A przez przekaźnik (COM/NO, patrz „Pompka”), funkcja `podlej(sekundy)` z `try/finally` i limitem czasu. Zmierzyć, ile ml wody daje 1 s pracy pompki (do `docs/testy.md`). Kod gotowy (`Pompka.podlej()`, `scripts/kalibracja_pompki.py`), sterowanie przekaźnikiem i zasilanie Pi sprawdzone (2026-11-09) — **czeka na moduł z gniazdem USB-A**. Kalibracja: waga kuchenna (1 g = 1 ml), 3 × 5 s.
+- [ ] **Etap 2 — pompka:** moduł z gniazdem USB-A (**HW-766, podłączony 2026-11-12**) przez przekaźnik (COM/NO, patrz „Pompka”), funkcja `podlej(sekundy)` z `try/finally` i limitem czasu. Zmierzyć, ile ml wody daje 1 s pracy pompki (do `docs/testy.md`). Kod gotowy (`Pompka.podlej()`, `scripts/kalibracja_pompki.py`), sterowanie przekaźnikiem i zasilanie Pi sprawdzone (2026-11-09) — **HW-766 podłączony, test bez pompki zrobiony (2026-11-12); następny krok: test z pompką**. Kalibracja: waga kuchenna (1 g = 1 ml), 3 × 5 s.
 - [x] **Etap 3 — moduły sprzętowe w repozytorium:** `hardware/sensor.py`, `hardware/pump.py`, `hardware/fake.py`, skrypty w `scripts/`, testy na atrapach — **zrobione (2026-11-04)**.
 - [x] **Etap 4 — automat:** pętla: odczyt sondy (decyzja większościowa) → jeśli sucho i minęła przerwa → podlej N sekund. Logowanie do pliku. — **zrobione (2026-11-09)**: `app/controller.py` (od etapu 5 automat działa jako wątek aplikacji, patrz decyzja 22).
 - [x] **Etap 5 — backend:** Flask + SQLite (fabryka `create_app()`, blueprinty). Modele: pomiary, cykle podlewania, ustawienia. Endpointy wzorowane na starym projekcie: `GET /api/status`, `GET /api/history/...`, `POST /api/water` (ręczne podlanie z limitem czasu), `POST /api/stop`, `GET/PUT /api/settings`. **Zrobione (2026-11-09):** `app/db.py`, `app/api.py`, `app/controller.py` (`Automat` + `Sterownik`), `run.py`; ręczne podlewanie omija przerwę i limit automatu (decyzja 24), panel bez logowania (decyzja 28). Uruchomienie: `uv run python run.py` (Windows: `$env:HARDWARE_MODE="simulation"; uv run python run.py`); na Pi przez SSH: `~/.local/bin/uv run python run.py`.
 - [x] **Etap 6 — frontend:** panel webowy serwowany przez Flask (stan rośliny, przycisk „Podlej”, wykres historii, ustawienia), wyglądem inspirowany panelem ze starego repozytorium. **Zrobione (2026-11-09):** `app/templates/index.html`, `app/static/panel.css`, `app/static/panel.js` — bez zasobów z internetu (decyzja 30), czysty JS (decyzja 31).
-- [~] **Etap 7 — wdrożenie i badania:** aplikacja jako usługa systemd uruchamiana przy starcie, sieć na obronę (hotspot na Pi lub Ethernet), testy długoterminowe, opis wyników w `docs/testy.md`. **Kod gotowy (2026-11-09):** serwer `waitress` (decyzja 35), `systemd/podlewanie.service`, `scripts/raport.py`, instrukcja `docs/obrona.md`. **Czeka na właściciela** (polecenia z `sudo`): instalacja usługi + test `sudo reboot`, decyzja o wyłączeniu `usb-off.service` (decyzja 37), wybór i próba sieci na obronę (decyzja 38).
+- [~] **Etap 7 — wdrożenie i badania:** aplikacja jako usługa systemd uruchamiana przy starcie, sieć na obronę (hotspot na Pi lub Ethernet), testy długoterminowe, opis wyników w `docs/testy.md`. **Kod gotowy (2026-11-09):** serwer `waitress` (decyzja 35), `systemd/podlewanie.service`, `scripts/raport.py`, instrukcja `docs/obrona.md`. Usługa zainstalowana i startuje z Pi, `usb-off.service` wyłączona (2026-11-12). **Zostało:** wybór i próba sieci na obronę (decyzja 38), test długoterminowy.
 - [ ] **Później (opcjonalnie):** ADS1115 dla odczytu wilgotności w %, czujnik poziomu wody HW-038 (blokada pompki przy pustym zbiorniku), sonda pojemnościowa zamiast HW-080 (HW-080 koroduje).
 
 ## Co zostało do zrobienia (stan na 2026-11-09)
 
 Cały kod systemu (etapy 0–7) jest gotowy i przetestowany. Zostały kroki zależne od sprzętu, czasu i właściciela:
 
-1. **Etap 2 — czekamy na jedną część elektroniczną: moduł z gniazdem USB-A** (Botland MOD-16154, sekcja „Pompka”).
-   Gdy dotrze: podłączenie przy wyłączonym Pi → kontrola, że pompka nie rusza sama → kalibracja na wadze
+1. **Etap 2 — test z pompką.** Moduł z gniazdem USB-A (HW-766) jest już podłączony (2026-11-12, sekcja „Pompka”).
+   Kolejne kroki: wpięcie pompki (w wodzie!) → kontrola, że pompka nie rusza sama → kalibracja na wadze
    (3 × 5 s przy zatrzymanej usłudze: `scripts.kalibracja_pompki`, albo przyciskiem „Podlej” w panelu;
    zasada bezpieczeństwa nr 1) → ustawienie czasu podlewania w panelu
    na podstawie ml/s → pełna ścieżka „sucho → automat podlewa”.
-2. **Etap 7 — kroki właściciela** (polecenia w `docs/obrona.md`): instalacja usługi systemd + `sudo reboot`,
-   decyzja o `usb-off.service`, próba sieci na obronę (hotspot z telefonu / hotspot na Pi).
+2. **Etap 7 — kroki właściciela:** ~~instalacja usługi systemd~~ (zrobione, usługa startuje z Pi — sprawdzone
+   2026-11-12), ~~wyłączenie `usb-off.service`~~ (zrobione); zostało: próba sieci na obronę
+   (hotspot z telefonu / hotspot na Pi, `docs/obrona.md`).
 3. **Test długoterminowy** (min. 7 dni, po etapie 2) — raport `scripts.raport` do `docs/testy.md`.
 4. **Próba generalna** na laptopie z obrony (lista kontrolna w `docs/obrona.md`).
 

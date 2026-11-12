@@ -278,3 +278,7 @@ Zaobserwowane 2026-11-09 (`docs/testy.md`): Pi bez RTC startuje z czasem z chwil
 ### 40. Raport z testów długoterminowych (`scripts/raport.py`)
 
 Podsumowanie każdego dnia jednym zapytaniem SQL na tabelę (`GROUP BY` po dacie lokalnej, funkcja okna `LAG` do wykrywania przerw w pracy > 5 min). Baza otwierana tylko do odczytu (`mode=ro`), więc raport nie koliduje z działającą usługą (tryb WAL). Wynik jako tabela Markdown — bezpośrednio do `docs/testy.md`.
+
+### 41. HW-766 zamiast Botland MOD-16154
+
+Zamiast planowanego modułu Botland MOD-16154 (decyzja 21) użyto płytki **HW-766** — to ten sam układ: żeńskie gniazdo USB-A z czterema wyprowadzonymi stykami (VBUS, D-, D+, GND) w rastrze 2,54 mm, bez innych elementów. Połączenia bez zmian: Pi pin 4 (5 V) → COM, NO → VBUS, GND → Pi pin 9; D+/D- wolne. Zaleta HW-766: piny są opisane na płytce, więc ryzyko odwrócenia polaryzacji pompki jest mniejsze.
