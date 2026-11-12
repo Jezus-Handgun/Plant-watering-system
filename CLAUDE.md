@@ -100,7 +100,7 @@ Na obronie Pi z elektroniką i **osobny laptop**. VS Code ani Claude Code nie s�
 - laptop otwiera panel w przeglądarce: `http://raspi.local:5000`,
 - SSH tylko awaryjnie.
 
-Na sali może nie być wspólnej sieci — przygotować (etap 7): hotspot Wi-Fi na Pi albo połączenie kablem Ethernet. Przećwiczyć całą prezentację na tym laptopie przed obroną.
+Na sali może nie być wspólnej sieci — **wybrano hotspot z iPhone'a** (profil Wi-Fi `iPhone` zapisany na Pi, autopołączenie; instrukcja: `docs/obrona.md`, plan A). Zapasowo hotspot na Pi (plan B). Przećwiczyć całą prezentację na tym laptopie przed obroną.
 
 ## Sprzęt
 
@@ -235,7 +235,7 @@ Cały kod systemu (etapy 0–7) jest gotowy i przetestowany. Zostały kroki zale
    na podstawie ml/s → pełna ścieżka „sucho → automat podlewa”.
 2. **Etap 7 — kroki właściciela:** ~~instalacja usługi systemd~~ (zrobione, usługa startuje z Pi — sprawdzone
    2026-11-12), ~~wyłączenie `usb-off.service`~~ (zrobione); zostało: próba sieci na obronę
-   (hotspot z telefonu / hotspot na Pi, `docs/obrona.md`).
+   (wybrany hotspot z iPhone'a — `docs/obrona.md`, plan A).
 3. **Test długoterminowy** (min. 7 dni, po etapie 2) — raport `scripts.raport` do `docs/testy.md`.
 4. **Próba generalna** na laptopie z obrony (lista kontrolna w `docs/obrona.md`).
 

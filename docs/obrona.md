@@ -60,9 +60,22 @@ Na sali może nie być wspólnej sieci. Laptop i Pi muszą być w tej samej siec
 
 **Rekomendacja:** A jako główny (już skonfigurowany), B jako zapasowy.
 
-### Plan A — sprawdzenie
+### Plan A — hotspot z iPhone'a (wybrany na obronę)
 
-Hotspot w telefonie musi mieć tę samą nazwę i hasło co przy zapisywaniu profilu na Pi. Przećwiczyć w domu: wyłączyć domowe Wi-Fi (albo odejść z Pi poza zasięg), włączyć hotspot, zrestartować Pi, połączyć laptop z hotspotem, otworzyć panel.
+Na Pi jest zapisany profil Wi-Fi `iPhone` (SSID `iPhone`, autopołączenie włączone, kraj Wi-Fi PL — działa 2,4 i 5 GHz). Na sali nie ma sieci domowej, więc Pi połączy się z telefonem samo.
+
+**Kolejność na sali:**
+1. iPhone: *Ustawienia → Osobisty hotspot* → włącz *Pozwalaj innym na dostęp*. **Zostaw ten ekran otwarty**, dopóki Pi i laptop się nie połączą — iOS przestaje rozgłaszać hotspot, gdy nikt nie jest połączony i ekran jest zamknięty.
+2. Włącz *Maksymalizuj zgodność* (jeśli jest) — hotspot na 2,4 GHz, najpewniejsze połączenie.
+3. Włącz Pi (albo, jeśli już działa, poczekaj — połączy się, gdy hotspot się pojawi).
+4. Laptop: połącz z Wi-Fi `iPhone`.
+5. Przeglądarka: `http://raspi.local:5000`. Na iPhonie pod *Osobisty hotspot* widać liczbę połączonych urządzeń (powinny być 2).
+
+**Gdy `raspi.local` nie działa:** hotspot iPhone'a daje adresy `172.20.10.2`–`172.20.10.14`. W PowerShell na laptopie: `ping -4 raspi.local` (pokaże adres), a jeśli nie odpowiada — `arp -a | findstr 172.20.10` i wpisać w przeglądarce kolejne adresy z portem, np. `http://172.20.10.3:5000`.
+
+**Warunki:** nazwa hotspotu w telefonie musi zostać `iPhone`, a hasło takie jak przy zapisywaniu profilu na Pi — zmiana któregoś = Pi się nie połączy (wtedy hotspot na Pi, plan B, albo ponowne zapisanie profilu przez SSH w domu).
+
+**Próba w domu (obowiązkowo przed obroną):** wyłączyć domowe Wi-Fi w routerze (albo zabrać Pi poza zasięg), wykonać kroki 1–5, kliknąć „Podlej” 2 s z pompką w wodzie. Przy okazji Pi ma internet przez telefon, więc zegar się zsynchronizuje.
 
 ### Plan B — hotspot na Pi (NetworkManager)
 
