@@ -81,7 +81,9 @@ Ruff + testy z atrapami       ── ssh raspi@raspi.local "..." ──▶  test
   nie wczytuje końca `~/.bashrc`, gdzie instalator uv dopisał `PATH`;
   `-t` tworzy terminal: Ctrl+C trafia do skryptu na Pi, działa `input()`. Bez `-t` Ctrl+C
   zamyka tylko klienta SSH, a skrypt na Pi działa dalej i trzyma GPIO — „GPIO busy”)
-- **Usługa `podlewanie` jest zainstalowana i działa od startu Pi (od 2026-11-09) — to ona trzyma GPIO17 i GPIO27.** Przed skryptami testowymi
+- **Usługa `podlewanie` jest zainstalowana i działa od startu Pi (od 2026-11-09) — to ona trzyma GPIO17 i GPIO27.**
+- **Pompka jest wpięta na stałe (od 2026-11-12):** przy włączonym automacie i suchej sondzie usługa sama ją
+  uruchamia (co ≥ 15 min, maks. 5 ×/dobę). Przed pracą przy pompce wyłączyć automat w panelu albo zatrzymać usługę. Przed skryptami testowymi
   `sudo systemctl stop podlewanie`, po nich `sudo systemctl start podlewanie` (szczegóły: `docs/obrona.md`).
 - Na Pi była włączona stara usługa `usb-off.service` (wyłącza zasilanie wszystkich portów USB przy starcie,
   pozostałość po odrzuconym `uhubctl`) — **wyłączona** (decyzja 37).
@@ -108,7 +110,7 @@ Na sali może nie być wspólnej sieci — przygotować (etap 7): hotspot Wi-Fi 
 | Moduł komparatora | **HW-103** (LM393, potencjometr) | Wyjście DO (cyfrowe) | ✅ działa |
 | Przekaźnik | **HW-307** (JQC3F-05VDC-C, 1 kanał, cewka 5 V) | Włącza pompkę | ✅ działa (przez diodę LED) |
 | Dioda LED | czerwona 5 mm | Dopasowanie poziomów 3,3 V → przekaźnik + wskaźnik pracy pompki | ✅ działa |
-| Pompka zanurzeniowa | mini pompa 5 V z wtykiem **USB-A** | Podlewanie | ⏳ test z pompką (HW-766 już podłączony) |
+| Pompka zanurzeniowa | mini pompa 5 V z wtykiem **USB-A** | Podlewanie | ✅ działa przez przekaźnik i HW-766 (2026-11-12); kalibracja ml/s do zrobienia |
 | Moduł z gniazdem USB-A | **HW-766**: gniazdo USB-A żeńskie, 4 piny 2,54 mm opisane na płytce (VBUS, D-, D+, GND), bez innych elementów (zamiast planowanego Botland MOD-16154 — ten sam układ, decyzja 41) | Gniazdo dla wtyku pompki, zasilane przez przekaźnik | ✅ podłączony (2026-11-12) |
 | Czujnik poziomu wody | **HW-038** (S, +, −; analogowy) | — | ❌ nieużywany (wymaga ADC) |
 
@@ -180,7 +182,7 @@ Nigdy nie używaj `active_high=True` dla tego przekaźnika — pompka by się ni
 
 Test potwierdzony: przy `on()` klika przekaźnik, świeci zielona dioda modułu i czerwona LED; przy `off()` wszystko gaśnie.
 
-### Pompka przez HW-766 (okablowanie zrobione 2026-11-12, test z pompką do zrobienia)
+### Pompka przez HW-766 (działa, sprawdzone 2026-11-12)
 
 Pompka wpięta wtykiem USB-A (kabel nietknięty) do **HW-766** (płytka z gniazdem USB-A); zasilanie gniazda przechodzi przez styk NO przekaźnika (decyzje 21 i 41 w `docs/decyzje.md`):
 
@@ -214,7 +216,7 @@ Pompka wpięta wtykiem USB-A (kabel nietknięty) do **HW-766** (płytka z gniazd
 - [x] **Etap 1 — test sondy:** GPIO17, SUCHO/MOKRO — **działa (2026-11-04)**.
 - [x] **Etap 1b — test przekaźnika:** GPIO27 przez diodę LED, `active_high=False` — **działa (2026-11-04)**.
 - [x] **Etap 1c — test restartu:** `sudo reboot` — zielona dioda przekaźnika i czerwona LED nie mogą się zapalić podczas startu. — **działa (2026-11-04)**.
-- [ ] **Etap 2 — pompka:** moduł z gniazdem USB-A (**HW-766, podłączony 2026-11-12**) przez przekaźnik (COM/NO, patrz „Pompka”), funkcja `podlej(sekundy)` z `try/finally` i limitem czasu. Zmierzyć, ile ml wody daje 1 s pracy pompki (do `docs/testy.md`). Kod gotowy (`Pompka.podlej()`, `scripts/kalibracja_pompki.py`), sterowanie przekaźnikiem i zasilanie Pi sprawdzone (2026-11-09) — **HW-766 podłączony, test bez pompki zrobiony (2026-11-12); następny krok: test z pompką**. Kalibracja: waga kuchenna (1 g = 1 ml), 3 × 5 s.
+- [ ] **Etap 2 — pompka:** moduł z gniazdem USB-A (**HW-766, podłączony 2026-11-12**) przez przekaźnik (COM/NO, patrz „Pompka”), funkcja `podlej(sekundy)` z `try/finally` i limitem czasu. Zmierzyć, ile ml wody daje 1 s pracy pompki (do `docs/testy.md`). Kod gotowy (`Pompka.podlej()`, `scripts/kalibracja_pompki.py`), sterowanie przekaźnikiem i zasilanie Pi sprawdzone (2026-11-09) — **pompka działa przez przekaźnik i HW-766 (2026-11-12): nie rusza sama, 2 s i 5 s z panelu/API, zasilanie Pi bez spadków. Zostało: kalibracja ml/s.** Kalibracja: waga kuchenna (1 g = 1 ml), 3 × 5 s.
 - [x] **Etap 3 — moduły sprzętowe w repozytorium:** `hardware/sensor.py`, `hardware/pump.py`, `hardware/fake.py`, skrypty w `scripts/`, testy na atrapach — **zrobione (2026-11-04)**.
 - [x] **Etap 4 — automat:** pętla: odczyt sondy (decyzja większościowa) → jeśli sucho i minęła przerwa → podlej N sekund. Logowanie do pliku. — **zrobione (2026-11-09)**: `app/controller.py` (od etapu 5 automat działa jako wątek aplikacji, patrz decyzja 22).
 - [x] **Etap 5 — backend:** Flask + SQLite (fabryka `create_app()`, blueprinty). Modele: pomiary, cykle podlewania, ustawienia. Endpointy wzorowane na starym projekcie: `GET /api/status`, `GET /api/history/...`, `POST /api/water` (ręczne podlanie z limitem czasu), `POST /api/stop`, `GET/PUT /api/settings`. **Zrobione (2026-11-09):** `app/db.py`, `app/api.py`, `app/controller.py` (`Automat` + `Sterownik`), `run.py`; ręczne podlewanie omija przerwę i limit automatu (decyzja 24), panel bez logowania (decyzja 28). Uruchomienie: `uv run python run.py` (Windows: `$env:HARDWARE_MODE="simulation"; uv run python run.py`); na Pi przez SSH: `~/.local/bin/uv run python run.py`.
@@ -226,8 +228,8 @@ Pompka wpięta wtykiem USB-A (kabel nietknięty) do **HW-766** (płytka z gniazd
 
 Cały kod systemu (etapy 0–7) jest gotowy i przetestowany. Zostały kroki zależne od sprzętu, czasu i właściciela:
 
-1. **Etap 2 — test z pompką.** Moduł z gniazdem USB-A (HW-766) jest już podłączony (2026-11-12, sekcja „Pompka”).
-   Kolejne kroki: wpięcie pompki (w wodzie!) → kontrola, że pompka nie rusza sama → kalibracja na wadze
+1. **Etap 2 — kalibracja pompki.** Pompka działa przez przekaźnik i HW-766 (2026-11-12, sekcja „Pompka”).
+   Zostało: kalibracja na wadze
    (3 × 5 s przy zatrzymanej usłudze: `scripts.kalibracja_pompki`, albo przyciskiem „Podlej” w panelu;
    zasada bezpieczeństwa nr 1) → ustawienie czasu podlewania w panelu
    na podstawie ml/s → pełna ścieżka „sucho → automat podlewa”.

@@ -95,9 +95,18 @@ Okablowanie: Pi pin 4 (5 V) → COM, NO → VBUS HW-766, GND HW-766 → Pi pin 9
 - **Ręczne podlewanie przez API:** `POST /api/water` 10 s → `202`; drugie żądanie w trakcie → `409 Pompka już pracuje`; `POST /api/stop` po ok. 1,5 s → przekaźnik wyłączony, w historii `czas_pracy_s = 2,07` z zadanych 10 s; `throttled = 0x0`.
 - 53/53 testów jednostkowych na Pi.
 
+## 2026-11-12 — Etap 2: pompka przez przekaźnik i HW-766
+
+Pompka zanurzona w naczyniu z wodą, wąż skierowany do drugiego (pustego) naczynia. Sterowanie przez działającą usługę (`POST /api/water` — ta sama ścieżka co przycisk „Podlej” w panelu).
+
+- **Po wpięciu pompki do HW-766 pompka nie ruszyła** (drugie naczynie puste) — tor przez styk NO jest poprawny.
+- **2 s:** przekaźnik 2,00 s, woda popłynęła wyraźnym strumieniem i zatrzymała się po wyłączeniu przekaźnika (obserwacja właściciela); `throttled = 0x0`, brak komunikatów jądra o napięciu.
+- **5 s:** przekaźnik 5,00 s, `throttled = 0x0` — zasilanie pompki z pinu 5 V nie powoduje spadków napięcia Pi.
+- **Kalibracja ml/s — przełożona** (pomiar 5 s wykonany, ale bez ważenia).
+
 ## Do zrobienia
 
-- Etap 2: ile ml wody daje 1 s pracy pompki.
-- Pełna ścieżka na sprzęcie: sucho → automat podlewa → pompka rusza (po etapie 2).
+- Etap 2: ile ml wody daje 1 s pracy pompki (waga, 3 × 5 s) — pompka już działa przez przekaźnik.
+- Pełna ścieżka z pompką: sucho → automat podlewa → woda w doniczce (przekaźnik w tej ścieżce sprawdzony 2026-11-12).
 - Test długoterminowy (min. 7 dni, po etapie 2) — raport `scripts.raport`.
 - Próba generalna na laptopie z obrony (wybrana sieć).
