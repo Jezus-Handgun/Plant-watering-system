@@ -282,3 +282,17 @@ Podsumowanie każdego dnia jednym zapytaniem SQL na tabelę (`GROUP BY` po dacie
 ### 41. HW-766 zamiast Botland MOD-16154
 
 Zamiast planowanego modułu Botland MOD-16154 (decyzja 21) użyto płytki **HW-766** — to ten sam układ: żeńskie gniazdo USB-A z czterema wyprowadzonymi stykami (VBUS, D-, D+, GND) w rastrze 2,54 mm, bez innych elementów. Połączenia bez zmian: Pi pin 4 (5 V) → COM, NO → VBUS, GND → Pi pin 9; D+/D- wolne. Zaleta HW-766: piny są opisane na płytce, więc ryzyko odwrócenia polaryzacji pompki jest mniejsze.
+
+### 42. Stan sondy w panelu odczytywany na żywo
+
+Problem zgłoszony przy teście (2026-11-12): po włożeniu widelca do wody panel nadal pokazywał SUCHO. Przyczyna: `/api/status` zwracał pomiar z ostatniego cyklu automatu (raz na minutę), więc zmiana była widoczna dopiero po do 60 s — albo wcale, jeśli widelec wyjęto wcześniej. Sprzęt działał poprawnie (skrypt `test_sondy` pokazywał MOKRO).
+
+Rozwiązanie: `/api/status` czyta sondę **przy każdym zapytaniu** (decyzja większościowa z 5 odczytów, ok. 0,4 s); panel pyta co 2 s. Rozdzielono dwie rzeczy:
+
+| Co | Jak często | Po co |
+|---|---|---|
+| Odczyt na żywo w panelu | co 2 s (każde zapytanie) | podgląd i demonstracja |
+| Pomiar zapisywany do bazy + decyzja automatu | co 60 s | historia, wykres, sterowanie |
+
+- **Alternatywa:** zapisywać pomiar co 2 s — odrzucona: ok. 43 tys. wierszy na dobę w bazie na karcie SD, a decyzji automatu i tak nie trzeba podejmować częściej niż co minutę (przerwa 15 min).
+- Pod stanem sondy panel podpisuje opis jako „Ostatni cykl automatu”, bo decyzja może pochodzić z pomiaru sprzed kilkudziesięciu sekund.

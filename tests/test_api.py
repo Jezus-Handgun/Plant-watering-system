@@ -53,6 +53,14 @@ def test_status(klient, sterownik):
     assert dane["ostatnia_decyzja"] == "przerwa"
 
 
+def test_status_czyta_sonde_na_zywo_bez_kroku_automatu(klient):
+    """Panel pyta co 2 s — zmiana stanu sondy widoczna od razu, nie po minutowym cyklu."""
+    ustaw_sonde(sucho=False)
+    assert klient.get("/api/status").get_json()["pomiar"]["sucho"] is False
+    ustaw_sonde(sucho=True)
+    assert klient.get("/api/status").get_json()["pomiar"]["sucho"] is True
+
+
 @pytest.mark.parametrize(
     "tresc",
     [

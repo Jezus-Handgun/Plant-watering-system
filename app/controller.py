@@ -68,7 +68,6 @@ class Sterownik:
         self._blokada_pompki = threading.Lock()  # jedno podlewanie naraz (automat albo ręczne)
         self._koniec = threading.Event()
         self._watek = None
-        self.ostatni_pomiar = None  # {"sucho": bool, "czas": float}
         self.ostatnia_decyzja = None
 
         # Podlania automatu z ostatniej doby (z bazy, więc restart nie zeruje limitu).
@@ -88,7 +87,6 @@ class Sterownik:
         """Jeden cykl: pomiar → zapis → decyzja → ewentualne podlanie."""
         sucho = self.sonda.jest_sucho()
         self.baza.zapisz_pomiar(sucho)
-        self.ostatni_pomiar = {"sucho": sucho, "czas": time.time()}
         if not self.ustawienia["automat_wlaczony"]:
             decyzja = Decyzja.WYLACZONY
         else:
@@ -162,7 +160,9 @@ class Sterownik:
             # Zegar Pi: bez internetu (hotspot na obronie) może być cofnięty — panel liczy
             # „X min temu” i okno wykresu względem niego, a nie zegara laptopa.
             "czas_serwera": time.time(),
-            "pomiar": self.ostatni_pomiar,
+            # Odczyt sondy na żywo przy każdym zapytaniu (panel pyta co 2 s). Do bazy i na wykres
+            # trafia tylko pomiar automatu raz na minutę (krok()) — bez ~43 tys. wierszy na dobę.
+            "pomiar": {"sucho": self.sonda.jest_sucho(), "czas": time.time()},
             "pompka_pracuje": self.pompka.pracuje,
             "automat_wlaczony": self.ustawienia["automat_wlaczony"],
             "ostatnia_decyzja": self.ostatnia_decyzja,

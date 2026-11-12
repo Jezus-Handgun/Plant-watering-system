@@ -104,6 +104,12 @@ Pompka zanurzona w naczyniu z wodą, wąż skierowany do drugiego (pustego) nacz
 - **5 s:** przekaźnik 5,00 s, `throttled = 0x0` — zasilanie pompki z pinu 5 V nie powoduje spadków napięcia Pi.
 - **Kalibracja ml/s — przełożona** (pomiar 5 s wykonany, ale bez ważenia).
 
+## 2026-11-12 — Sonda: woda → MOKRO, ale panel pokazywał SUCHO
+
+- **Skrypt** `python -m scripts.test_sondy` (przy zatrzymanej usłudze): widelec w wodzie → `surowy: MOKRO | większość: MOKRO`, po wyjęciu → SUCHO. Sprzęt i logika DO (0 = mokro) poprawne.
+- **Panel** pokazywał SUCHO, bo stan sondy pochodził z minutowego cyklu automatu, a widelec był w wodzie krócej niż do następnego pomiaru.
+- **Poprawka:** odczyt na żywo przy każdym zapytaniu `/api/status` (panel co 2 s) — decyzja 42; nowy test `test_status_czyta_sonde_na_zywo_bez_kroku_automatu`, 54/54 testów.
+
 ## Do zrobienia
 
 - Etap 2: ile ml wody daje 1 s pracy pompki (waga, 3 × 5 s) — pompka już działa przez przekaźnik.

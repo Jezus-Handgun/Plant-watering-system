@@ -71,17 +71,13 @@ async function odswiezStatus() {
   const s = await api("/api/status");
   przesuniecie = Date.now() / 1000 - s.czas_serwera;
 
+  // Odczyt sondy na żywo (co 2 s); decyzja automatu pochodzi z jego ostatniego cyklu (co minutę).
   const gleba = $("gleba");
-  if (s.pomiar) {
-    gleba.textContent = s.pomiar.sucho ? "SUCHO" : "MOKRO";
-    gleba.dataset.stan = s.pomiar.sucho ? "sucho" : "mokro";
-    $("czasPomiaru").textContent = `Pomiar ${ileTemu(s.pomiar.czas)} (${godzina(s.pomiar.czas)})`;
-  } else {
-    gleba.textContent = "—";
-    gleba.dataset.stan = "brak";
-    $("czasPomiaru").textContent = "Pierwszy pomiar w ciągu minuty od startu.";
-  }
-  $("decyzja").textContent = OPIS_DECYZJI[s.ostatnia_decyzja] ?? "";
+  gleba.textContent = s.pomiar.sucho ? "SUCHO" : "MOKRO";
+  gleba.dataset.stan = s.pomiar.sucho ? "sucho" : "mokro";
+  $("czasPomiaru").textContent = `Odczyt na żywo, ${godzina(s.pomiar.czas)}`;
+  const opis = OPIS_DECYZJI[s.ostatnia_decyzja];
+  $("decyzja").textContent = opis ? `Ostatni cykl automatu: ${opis}` : "";
 
   const pompka = $("pompka");
   pompka.dataset.pracuje = s.pompka_pracuje;
